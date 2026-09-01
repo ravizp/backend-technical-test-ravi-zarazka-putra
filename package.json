@@ -1,0 +1,41 @@
+{
+  "name": "backend-technical-test-ravi-zarazka-putra",
+  "version": "1.0.0",
+  "description": "Backend Engineer Take-Home Technical Test",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravizp/backend-technical-test-ravi-zarazka-putra.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ravizp/backend-technical-test-ravi-zarazka-putra/issues"
+  },
+  "homepage": "https://github.com/ravizp/backend-technical-test-ravi-zarazka-putra#readme",
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.6.1",
+    "@hono/zod-validator": "^0.9.1",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.5",
+    "postgres": "^3.4.9",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.9.1",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
