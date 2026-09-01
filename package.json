@@ -1,7 +1,7 @@
 {
   "name": "backend-technical-test-ravi-zarazka-putra",
   "version": "1.0.0",
-  "description": "Backend Engineer Take-Home Technical Test",
+  "description": "Inventory Procurement API -Backend Engineer Take-Home Technical Test",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
