@@ -1,8 +1,13 @@
 {
   "name": "backend-technical-test-ravi-zarazka-putra",
   "version": "1.0.0",
-  "description": "Inventory Procurement API -Backend Engineer Take-Home Technical Test",
+  "description": "Inventory Procurement API — Backend Engineer take-home technical test",
+  "type": "module",
   "main": "dist/server.js",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
@@ -23,10 +28,16 @@
     "type": "git",
     "url": "git+https://github.com/ravizp/backend-technical-test-ravi-zarazka-putra.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "inventory",
+    "procurement",
+    "hono",
+    "drizzle",
+    "postgresql",
+    "typescript"
+  ],
+  "author": "ravizp",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/ravizp/backend-technical-test-ravi-zarazka-putra/issues"
   },

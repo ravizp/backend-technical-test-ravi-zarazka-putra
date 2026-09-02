@@ -15,6 +15,7 @@
     "sourceMap": true,
     "declaration": false,
     "declarationMap": false,
+    "resolveJsonModule": true,
 
     // Stricter type-checking
     "strict": true,
