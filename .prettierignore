@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+drizzle
+pgdata
+package-lock.json
+*.drawio.png
