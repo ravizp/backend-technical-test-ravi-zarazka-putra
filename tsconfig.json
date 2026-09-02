@@ -1,46 +1,31 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
-  "include": ["src/**/*.ts"],
+  // Base config: used by the editor and `npm run typecheck`.
+  // Covers everything (src + tests + root *.config.ts) and never emits.
+  // `npm run build` uses tsconfig.build.json, which narrows to src/ and emits.
+  "include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {
-    // File Layout
-    "rootDir": "./src",
-    "outDir": "./dist",
-
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
+    // Environment
     "module": "nodenext",
     "target": "esnext",
     "types": ["node"],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
 
-    // Other Outputs
+    // No output here — see tsconfig.build.json
+    "noEmit": true,
     "sourceMap": true,
     "declaration": false,
     "declarationMap": false,
 
-    // Stricter Typechecking Options
+    // Stricter type-checking
+    "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
-
-    // Recommended Options
-    "strict": true,
-    "jsx": "react-jsx",
+    // Module handling
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
