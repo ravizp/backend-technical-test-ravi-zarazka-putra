@@ -18,6 +18,8 @@ Peran (`role`) pada tabel:
 - `auth` — user terautentikasi, peran apa pun
 - `USER` — hanya role `USER` (dan untuk sebagian aksi harus pemilik resource)
 - `APPROVER` — hanya role `APPROVER`
+- `auth*` — user terautentikasi, tapi cakupan data dipersempit oleh peran (lihat
+  keterangan endpoint)
 
 ---
 
@@ -66,18 +68,18 @@ Peran (`role`) pada tabel:
 
 ### Purchase Request
 
-| method | path                                   | role                  | keterangan                                                     |
-| ------ | -------------------------------------- | --------------------- | -------------------------------------------------------------- |
-| POST   | `/purchase-requests`                   | USER                  | Buat PR (boleh langsung dengan items)                          |
-| GET    | `/purchase-requests`                   | auth                  | List (filter `status`, `warehouseId`, `requestedBy`, paginasi) |
-| GET    | `/purchase-requests/:id`               | auth                  | Detail + items                                                 |
-| PATCH  | `/purchase-requests/:id`               | USER (pemilik, DRAFT) | Ubah `warehouseId`                                             |
-| POST   | `/purchase-requests/:id/items`         | USER (pemilik, DRAFT) | Tambah 1 item                                                  |
-| PATCH  | `/purchase-requests/:id/items/:itemId` | USER (pemilik, DRAFT) | Ubah `quantity`                                                |
-| DELETE | `/purchase-requests/:id/items/:itemId` | USER (pemilik, DRAFT) | Hapus item                                                     |
-| POST   | `/purchase-requests/:id/submit`        | USER (pemilik)        | `DRAFT` → `SUBMITTED`                                          |
-| POST   | `/purchase-requests/:id/approve`       | APPROVER              | `SUBMITTED` → `APPROVED`                                       |
-| POST   | `/purchase-requests/:id/reject`        | APPROVER              | `SUBMITTED` → `REJECTED` (+`reason`)                           |
+| method | path                                   | role                  | keterangan                                                                                 |
+| ------ | -------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| POST   | `/purchase-requests`                   | USER                  | Buat PR (boleh langsung dengan items)                                                      |
+| GET    | `/purchase-requests`                   | auth\*                | List. `USER` hanya PR miliknya; `APPROVER` semua. Filter `status`, `warehouseId`, paginasi |
+| GET    | `/purchase-requests/:id`               | auth\*                | Detail + items. `USER` hanya PR miliknya (selain itu `404`)                                |
+| PATCH  | `/purchase-requests/:id`               | USER (pemilik, DRAFT) | Ubah `warehouseId`                                                                         |
+| POST   | `/purchase-requests/:id/items`         | USER (pemilik, DRAFT) | Tambah 1 item                                                                              |
+| PATCH  | `/purchase-requests/:id/items/:itemId` | USER (pemilik, DRAFT) | Ubah `quantity`                                                                            |
+| DELETE | `/purchase-requests/:id/items/:itemId` | USER (pemilik, DRAFT) | Hapus item                                                                                 |
+| POST   | `/purchase-requests/:id/submit`        | USER (pemilik)        | `DRAFT` → `SUBMITTED`                                                                      |
+| POST   | `/purchase-requests/:id/approve`       | APPROVER              | `SUBMITTED` → `APPROVED`                                                                   |
+| POST   | `/purchase-requests/:id/reject`        | APPROVER              | `SUBMITTED` → `REJECTED` (+`reason`)                                                       |
 
 ### Purchase Order
 
@@ -311,13 +313,18 @@ Response `201`:
 Error: `VALIDATION_ERROR` (422), `WAREHOUSE_INACTIVE` (422), `PRODUCT_INACTIVE` (422),
 `PURCHASE_REQUEST_DUPLICATE_PRODUCT` (422).
 
-### GET `/api/purchase-requests` — `auth`
+### GET `/api/purchase-requests` — `auth*`
 
-Query: `status`, `warehouseId`, `requestedBy`, `page`, `pageSize`.
+Query: `status`, `warehouseId`, `page`, `pageSize`.
+Cakupan: `USER` otomatis di-filter ke PR miliknya (`requestedBy = dirinya`); `APPROVER`
+melihat semua PR semua status.
 
-### GET `/api/purchase-requests/:id` — `auth`
+### GET `/api/purchase-requests/:id` — `auth*`
 
-Response `200`: PR + `items`. Error: `PURCHASE_REQUEST_NOT_FOUND` (404).
+Response `200`: PR + `items`.
+Cakupan: `APPROVER` boleh melihat PR mana pun; `USER` hanya PR miliknya, selain itu
+dibalas `PURCHASE_REQUEST_NOT_FOUND` (404) agar keberadaannya tidak bocor.
+Error: `PURCHASE_REQUEST_NOT_FOUND` (404).
 
 ### PATCH `/api/purchase-requests/:id` — `USER` (pemilik, `DRAFT`)
 
@@ -500,8 +507,9 @@ Detail di [`../ASSUMPTIONS.md`](../ASSUMPTIONS.md).
 
 - CRUD master data boleh oleh user terautentikasi mana pun (tidak ada role khusus admin
   di requirement).
-- Semua orang terautentikasi boleh **membaca** PR / PO / GR. Aksi tulis & transisi
-  status yang dibatasi role/kepemilikan.
+- **Purchase Request:** `USER` hanya melihat PR miliknya; `APPROVER` melihat semua PR
+  semua status. **Purchase Order / Goods Receipt / Inventory:** boleh dibaca semua user
+  terautentikasi. Aksi tulis & transisi status dibatasi role/kepemilikan.
 - Master data dihapus secara soft (`isActive = false`), tidak ada endpoint hard delete.
 - PR & PO tidak punya endpoint delete — hanya perubahan status.
 - `PATCH` dipakai untuk update parsial; field yang tidak dikirim tidak diubah.

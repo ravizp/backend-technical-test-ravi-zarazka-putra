@@ -20,17 +20,27 @@ Referensi detail: [`docs/database-design.md`](docs/database-design.md),
 3. Seeder menyediakan minimal 1 user `USER` dan 1 user `APPROVER`. Kredensial
    dicantumkan di README.
 4. `role` seorang user tetap (tidak ada endpoint ganti role).
+5. Satu user punya **tepat satu** role — kolom `role` tunggal dengan
+   `CHECK (role IN ('USER','APPROVER'))`. Role bersifat **eksklusif**: tidak ada user
+   yang sekaligus `USER` dan `APPROVER`.
 
 ## 2. Peran & otorisasi
 
 1. Requirement hanya mendefinisikan `USER` dan `APPROVER`. `APPROVER` khusus approval
    PR. **Semua aksi lain** (buat/kelola master data, buat PR, buat PO, mark as ordered,
    cancel PO, catat Goods Receipt) dilakukan oleh `USER`.
-2. **Membaca** data (list & detail PR / PO / GR / inventory / master data) boleh oleh
-   user terautentikasi mana pun. Pembatasan hanya di operasi tulis & transisi status.
-3. Edit & submit sebuah PR hanya boleh oleh **pemilik** PR (`requested_by`). USER lain
+2. **Visibilitas Purchase Request:**
+   - `USER` hanya melihat PR **miliknya sendiri** (`requested_by = dirinya`). Endpoint
+     list otomatis di-filter; `GET` detail PR milik orang lain dibalas `404`
+     (`PURCHASE_REQUEST_NOT_FOUND`) supaya keberadaannya tidak bocor.
+   - `APPROVER` melihat **semua** PR, **semua status** (bukan hanya `SUBMITTED`) — perlu
+     untuk melihat riwayat keputusan.
+3. **Visibilitas Purchase Order / Goods Receipt / Inventory / master data:** boleh
+   dibaca oleh user terautentikasi mana pun. `USER` menjalankan seluruh proses
+   procurement hilir sehingga tidak dibatasi di sana.
+4. Edit & submit sebuah PR hanya boleh oleh **pemilik** PR (`requested_by`). USER lain
    tidak bisa, walaupun sama-sama role `USER`.
-4. CRUD master data (product / supplier / warehouse) boleh oleh user terautentikasi mana
+5. CRUD master data (product / supplier / warehouse) boleh oleh user terautentikasi mana
    pun — tidak ada role "admin" terpisah di requirement.
 
 ## 3. Master data
@@ -48,6 +58,10 @@ Referensi detail: [`docs/database-design.md`](docs/database-design.md),
 2. Satu product hanya boleh muncul **satu kali** per PR — `UNIQUE (purchase_request_id, product_id)`.
    Menambah product yang sudah ada ditolak, bukan digabung quantity-nya.
 3. `quantity` tiap item harus `> 0` (dijaga schema + `CHECK`).
+   Semua kolom quantity (`purchase_request_items.quantity`,
+   `purchase_order_items.ordered_quantity` / `received_quantity`,
+   `good_receipt_items.received_quantity`) bertipe **integer** — tidak menerima desimal.
+   Unit barang (`PCS`, `BOX`) selalu bilangan bulat untuk case study ini.
 4. PR bisa dibuat langsung dengan `items`, atau kosong lalu item ditambah belakangan
    selama masih `DRAFT`.
 5. Saat **submit**, dicek: minimal 1 item, dan semua product item masih aktif. Kalau ada
