@@ -1,11 +1,10 @@
 import { z } from "zod";
 
-// Load `.env` into process.env when the file exists. No extra dependency:
-// process.loadEnvFile is built into Node >= 20.12. Real shell / CI vars still win.
+// Load env
 try {
   process.loadEnvFile();
 } catch {
-  // no .env file present — rely on the ambient environment
+  // no .env file present — not problem, we can still read from process.env
 }
 
 const EnvSchema = z.object({
