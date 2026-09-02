@@ -1,0 +1,34 @@
+# Local PostgreSQL for the Inventory Procurement API.
+# Usage:
+#   docker compose up -d          # start Postgres in the background
+#   docker compose down           # stop it (data is kept in the named volume)
+#   docker compose down -v        # stop it AND wipe the data
+services:
+  postgresql:
+    image: postgres:16.4
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory_procurement
+
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    depends_on:
+      - postgresql
+
+  adminer:
+    image: adminer:4.8.1  # Versi stabil terbaru (5.x belum resmi, 4.8.1 lebih kompatibel)
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgresql
