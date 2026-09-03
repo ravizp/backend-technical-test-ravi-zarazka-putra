@@ -43,6 +43,13 @@
       "when": 1788427861300,
       "tag": "0005_create_table_inventories",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788428121304,
+      "tag": "0006_create_table_inventory_movements",
+      "breakpoints": true
     }
   ]
 }
