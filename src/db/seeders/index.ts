@@ -1,13 +1,22 @@
 import { closeDb } from "../connection-postgresql.js";
+import { seedInventories } from "./inventories.seeder.js";
+import { seedProducts } from "./products.seeder.js";
+import { seedSuppliers } from "./suppliers.seeder.js";
 import { seedUsers } from "./users.seeder.js";
+import { seedWarehouses } from "./warehouses.seeder.js";
 
 /**
  * Seeder entry point. Run with:
- *   npm run db:seed              -> run every seeder, in order
- *   npm run db:seed -- users     -> run only the "users" seeder
+ *   npm run db:seed                -> run every seeder, in order
+ *   npm run db:seed -- name        -> run only the "products" seeder
+ *   npm run db:seed -- name1 name2 -> run only the "products" and "suppliers" seeders
  */
 const seeders: Record<string, () => Promise<void>> = {
   users: seedUsers,
+  warehouses: seedWarehouses,
+  suppliers: seedSuppliers,
+  products: seedProducts,
+  inventories: seedInventories,
 };
 
 async function run(): Promise<void> {
