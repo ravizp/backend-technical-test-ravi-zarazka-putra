@@ -6,10 +6,6 @@ import { createdAtOnly, primaryId } from "./helpers/set-columns.js";
 import { users } from "./create-table-users.js";
 import { warehouses } from "./create-table-warehouses.js";
 
-/**
- * Append-only ledger of every stock change. Written in the same transaction
- * that updates `inventories.quantity`. No updated_at — rows are immutable.
- */
 export const inventoryMovements = pgTable(
   "inventory_movements",
   {
