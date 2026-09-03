@@ -42,4 +42,13 @@ export const goodsReceiptSchema = z
   })
   .openapi("GoodsReceipt");
 
+// Header DTO
+export const goodsReceiptSummarySchema = goodsReceiptSchema
+  .omit({ items: true, purchaseOrder: true })
+  .openapi("GoodsReceiptSummary");
+
+export const goodsReceiptListSchema = z
+  .object({ data: z.array(goodsReceiptSummarySchema) })
+  .openapi("GoodsReceiptList");
+
 export type CreateGoodsReceiptInput = z.infer<typeof createGoodsReceiptSchema>;

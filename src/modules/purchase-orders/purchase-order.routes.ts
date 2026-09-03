@@ -13,6 +13,8 @@ import {
   listPurchaseOrders,
   markPurchaseOrderAsOrdered,
 } from "./purchase-order.service.js";
+import { goodsReceiptListSchema } from "../goods-receipts/goods-receipt.schema.js";
+import { listGoodsReceiptsForPurchaseOrder } from "../goods-receipts/goods-receipt.service.js";
 
 export const purchaseOrderRoutes = createRouter<AuthEnv>();
 
@@ -89,4 +91,18 @@ purchaseOrderRoutes.openapi(
     },
   }),
   async (c) => c.json(await markPurchaseOrderAsOrdered(c.req.valid("param").id), 200),
+);
+
+purchaseOrderRoutes.openapi(
+  createRoute({
+    method: "get",
+    path: "/{id}/goods-receipts",
+    tags: TAG,
+    summary: "List the Goods Receipts recorded against a Purchase Order",
+    ...bearer,
+    middleware: protect(),
+    request: { params: idParamSchema },
+    responses: { 200: jsonResponse(goodsReceiptListSchema, "Goods Receipts for this PO, oldest first") },
+  }),
+  async (c) => c.json(await listGoodsReceiptsForPurchaseOrder(c.req.valid("param").id), 200),
 );
