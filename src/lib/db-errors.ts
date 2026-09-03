@@ -15,9 +15,16 @@ function asPgError(err: unknown): PgError | null {
   return null;
 }
 
-// Check if an error is a Postgres unique constraint violation
+// Check if an error is a Postgres unique constraint
 export function isUniqueViolation(err: unknown, constraint?: string): boolean {
   const pg = asPgError(err);
   if (!pg || pg.code !== "23505") return false;
+  return constraint ? pg.constraint_name === constraint : true;
+}
+
+// Check if an error is a Postgres CHECK constraint
+export function isCheckViolation(err: unknown, constraint?: string): boolean {
+  const pg = asPgError(err);
+  if (!pg || pg.code !== "23514") return false;
   return constraint ? pg.constraint_name === constraint : true;
 }
