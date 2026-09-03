@@ -23,7 +23,7 @@ const url = `postgres://${encodeURIComponent(PG_USERNAME)}:${encodeURIComponent(
 
 export default defineConfig({
   schema: "./src/db/schema/index.ts",
-  out: "./drizzle",
+  out: "./drizzle/migrations",
   dialect: "postgresql",
   dbCredentials: { url },
   casing: "snake_case",
