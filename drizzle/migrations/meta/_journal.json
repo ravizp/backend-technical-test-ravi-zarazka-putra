@@ -29,6 +29,13 @@
       "when": 1788426801312,
       "tag": "0003_create_table_warehouses",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788427524260,
+      "tag": "0004_create_table_document_sequences",
+      "breakpoints": true
     }
   ]
 }
