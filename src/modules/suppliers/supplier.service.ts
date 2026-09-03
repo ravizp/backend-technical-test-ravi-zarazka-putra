@@ -3,7 +3,11 @@ import { db } from "../../db/connection-postgresql.js";
 import { suppliers } from "../../db/schema/index.js";
 import { AppError } from "../../lib/error-handler-http-status-codes.js";
 import { limitOffset, paginated } from "../../lib/pagination.js";
-import type { CreateSupplierInput, ListSupplierQuery } from "./supplier.schema.js";
+import type {
+  CreateSupplierInput,
+  ListSupplierQuery,
+  UpdateSupplierInput,
+} from "./supplier.schema.js";
 
 type SupplierRow = typeof suppliers.$inferSelect;
 
@@ -52,4 +56,15 @@ export async function listSuppliers(query: ListSupplierQuery) {
     .offset(offset);
 
   return paginated(rows.map(toDto), totalRow?.value ?? 0, query);
+}
+
+export async function updateSupplier(id: string, input: UpdateSupplierInput) {
+  if (Object.keys(input).length === 0) return getSupplierById(id);
+  const [row] = await db
+    .update(suppliers)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(suppliers.id, id))
+    .returning();
+  if (!row) throw NOT_FOUND();
+  return toDto(row);
 }

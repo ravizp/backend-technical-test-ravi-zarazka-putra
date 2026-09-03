@@ -22,6 +22,8 @@ export const createSupplierSchema = z
   })
   .openapi("CreateSupplier");
 
+export const updateSupplierSchema = createSupplierSchema.partial().openapi("UpdateSupplier");
+
 export const listSupplierQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).optional().openapi({ example: "mitra" }),
   isActive: z
@@ -33,4 +35,5 @@ export const listSupplierQuerySchema = paginationQuerySchema.extend({
 export const supplierListSchema = paginatedResponseSchema(supplierSchema);
 
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
+export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;
 export type ListSupplierQuery = z.infer<typeof listSupplierQuerySchema>;

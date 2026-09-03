@@ -6,11 +6,13 @@ import {
   listSupplierQuerySchema,
   supplierListSchema,
   supplierSchema,
+  updateSupplierSchema,
 } from "./supplier.schema.js";
 import {
   createSupplier,
   getSupplierById,
   listSuppliers,
+  updateSupplier,
 } from "./supplier.service.js";
 
 export const supplierRoutes = createRouter();
@@ -61,4 +63,24 @@ supplierRoutes.openapi(
     },
   }),
   async (c) => c.json(await getSupplierById(c.req.valid("param").id), 200),
+);
+
+supplierRoutes.openapi(
+  createRoute({
+    method: "patch",
+    path: "/{id}",
+    tags: TAG,
+    summary: "Update a supplier",
+    ...AUTH,
+    request: {
+      params: idParamSchema,
+      body: { content: { "application/json": { schema: updateSupplierSchema } } },
+    },
+    responses: {
+      200: jsonResponse(supplierSchema, "Updated supplier"),
+      404: errorResponse("Supplier not found"),
+      422: errorResponse("Validation error"),
+    },
+  }),
+  async (c) => c.json(await updateSupplier(c.req.valid("param").id, c.req.valid("json")), 200),
 );
