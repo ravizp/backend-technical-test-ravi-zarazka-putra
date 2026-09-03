@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { api, type ErrorBody } from "../helpers/api.js";
-import { truncateAll } from "../helpers/db.js";
-import { seedBasics, type Fixtures } from "../helpers/fixtures.js";
+import { api, type ErrorBody } from "../helpers-testing/api-request.js";
+import { truncateAll } from "../helpers-testing/db-connection.js";
+import { seedBasics, type Fixtures } from "../helpers-testing/fixtures-seeders.js";
 
 describe("Purchase Order business rules", () => {
   let f: Fixtures;
@@ -72,5 +72,18 @@ describe("Purchase Order business rules", () => {
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0]?.orderedQuantity).toBe(100);
     expect(res.body.items[0]?.receivedQuantity).toBe(0);
+  });
+
+  // --- Point 4: at most one Purchase Order per Purchase Request ---
+
+  it("rejects creating a second Purchase Order from the same Purchase Request", async () => {
+    const prId = await approvedPr();
+
+    const first = await createPo(prId);
+    expect(first.status).toBe(201);
+
+    const second = await createPo<ErrorBody>(prId);
+    expect(second.status).toBe(409);
+    expect(second.body.error.code).toBe("PURCHASE_ORDER_ALREADY_EXISTS");
   });
 });
