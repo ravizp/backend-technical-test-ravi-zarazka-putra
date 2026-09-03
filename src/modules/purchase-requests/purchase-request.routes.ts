@@ -4,7 +4,9 @@ import { createRouter, errorResponse, idParamSchema, jsonResponse } from "../../
 import {
   addItemSchema,
   createPurchaseRequestSchema,
+  listPurchaseRequestQuerySchema,
   prItemParamSchema,
+  purchaseRequestListSchema,
   purchaseRequestSchema,
   rejectPurchaseRequestSchema,
   updateItemSchema,
@@ -14,7 +16,8 @@ import {
   addPurchaseRequestItem,
   approvePurchaseRequest,
   createPurchaseRequest,
-  getPurchaseRequestById,
+  getPurchaseRequestForViewer,
+  listPurchaseRequests,
   rejectPurchaseRequest,
   removePurchaseRequestItem,
   submitPurchaseRequest,
@@ -50,18 +53,32 @@ purchaseRequestRoutes.openapi(
 purchaseRequestRoutes.openapi(
   createRoute({
     method: "get",
+    path: "/",
+    tags: TAG,
+    summary: "List Purchase Requests (USER sees own, APPROVER sees all)",
+    ...bearer,
+    middleware: protect(),
+    request: { query: listPurchaseRequestQuerySchema },
+    responses: { 200: jsonResponse(purchaseRequestListSchema, "Paginated Purchase Requests") },
+  }),
+  async (c) => c.json(await listPurchaseRequests(c.req.valid("query"), currentUser(c)), 200),
+);
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "get",
     path: "/{id}",
     tags: TAG,
-    summary: "Get a Purchase Request by id",
+    summary: "Get a Purchase Request by id (USER: own only)",
     ...bearer,
     middleware: protect(),
     request: { params: idParamSchema },
     responses: {
       200: jsonResponse(purchaseRequestSchema, "Purchase Request with items"),
-      404: errorResponse("Purchase Request not found"),
+      404: errorResponse("Purchase Request not found (or not visible to this USER)"),
     },
   }),
-  async (c) => c.json(await getPurchaseRequestById(c.req.valid("param").id), 200),
+  async (c) => c.json(await getPurchaseRequestForViewer(c.req.valid("param").id, currentUser(c)), 200),
 );
 
 // draft editing: owner + DRAFT only

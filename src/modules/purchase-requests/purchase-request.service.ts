@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db/connection-postgresql.js";
 import {
   products,
@@ -8,9 +8,12 @@ import {
 } from "../../db/schema/index.js";
 import { nextDocumentNumber } from "../../lib/document-number.js";
 import { AppError } from "../../lib/error-handler-http-status-codes.js";
+import { limitOffset, paginated } from "../../lib/pagination.js";
+import type { AuthUser } from "../auth/auth.service.js";
 import type {
   AddItemInput,
   CreatePurchaseRequestInput,
+  ListPurchaseRequestQuery,
   UpdateItemInput,
   UpdatePurchaseRequestInput,
 } from "./purchase-request.schema.js";
@@ -77,7 +80,8 @@ async function itemsWithProduct(purchaseRequestId: string) {
   return rows;
 }
 
-function serialize(pr: PrRow, items: Awaited<ReturnType<typeof itemsWithProduct>>) {
+// Header DTO
+function headerDto(pr: PrRow) {
   return {
     id: pr.id,
     requestNumber: pr.requestNumber,
@@ -88,10 +92,13 @@ function serialize(pr: PrRow, items: Awaited<ReturnType<typeof itemsWithProduct>
     approvedAt: pr.approvedAt?.toISOString() ?? null,
     rejectionReason: pr.rejectionReason,
     submittedAt: pr.submittedAt?.toISOString() ?? null,
-    items,
     createdAt: pr.createdAt.toISOString(),
     updatedAt: pr.updatedAt.toISOString(),
   };
+}
+
+function serialize(pr: PrRow, items: Awaited<ReturnType<typeof itemsWithProduct>>) {
+  return { ...headerDto(pr), items };
 }
 
 async function loadRow(id: string): Promise<PrRow> {
@@ -100,9 +107,51 @@ async function loadRow(id: string): Promise<PrRow> {
   return row;
 }
 
+// Get a purchase request by ID (unscoped)
 export async function getPurchaseRequestById(id: string) {
   const row = await loadRow(id);
   return serialize(row, await itemsWithProduct(id));
+}
+
+// Scoped for the viewer
+export async function getPurchaseRequestForViewer(id: string, viewer: AuthUser) {
+  const row = await loadRow(id);
+  if (viewer.role === "USER" && row.requestedBy !== viewer.id) {
+    throw AppError.notFound("Purchase Request not found", "PURCHASE_REQUEST_NOT_FOUND");
+  }
+  return serialize(row, await itemsWithProduct(id));
+}
+
+// List purchase requests (USER sees own, APPROVER sees all)
+export async function listPurchaseRequests(query: ListPurchaseRequestQuery, viewer: AuthUser) {
+  const filters = [];
+  if (viewer.role === "USER") filters.push(eq(purchaseRequests.requestedBy, viewer.id));
+  if (query.status) filters.push(eq(purchaseRequests.status, query.status));
+  if (query.warehouseId) filters.push(eq(purchaseRequests.warehouseId, query.warehouseId));
+  const where = filters.length > 0 ? and(...filters) : undefined;
+
+  const [totalRow] = await db.select({ value: count() }).from(purchaseRequests).where(where);
+  const { limit, offset } = limitOffset(query);
+  const rows = await db
+    .select()
+    .from(purchaseRequests)
+    .where(where)
+    .orderBy(desc(purchaseRequests.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const ids = rows.map((r) => r.id);
+  const counts = ids.length
+    ? await db
+        .select({ prId: purchaseRequestItems.purchaseRequestId, n: count() })
+        .from(purchaseRequestItems)
+        .where(inArray(purchaseRequestItems.purchaseRequestId, ids))
+        .groupBy(purchaseRequestItems.purchaseRequestId)
+    : [];
+  const byPr = new Map(counts.map((c) => [c.prId, c.n]));
+
+  const data = rows.map((r) => ({ ...headerDto(r), itemCount: byPr.get(r.id) ?? 0 }));
+  return paginated(data, totalRow?.value ?? 0, query);
 }
 
 //create purchase request
