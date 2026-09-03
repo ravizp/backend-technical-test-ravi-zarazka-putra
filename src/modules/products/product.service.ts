@@ -4,7 +4,7 @@ import { products } from "../../db/schema/index.js";
 import { isUniqueViolation } from "../../lib/db-errors.js";
 import { AppError } from "../../lib/error-handler-http-status-codes.js";
 import { limitOffset, paginated } from "../../lib/pagination.js";
-import type { CreateProductInput, ListProductQuery } from "./product.schema.js";
+import type { CreateProductInput, ListProductQuery, UpdateProductInput } from "./product.schema.js";
 
 type ProductRow = typeof products.$inferSelect;
 
@@ -60,4 +60,20 @@ export async function listProducts(query: ListProductQuery) {
     .offset(offset);
 
   return paginated(rows.map(toDto), totalRow?.value ?? 0, query);
+}
+
+export async function updateProduct(id: string, input: UpdateProductInput) {
+  if (Object.keys(input).length === 0) return getProductById(id);
+  try {
+    const [row] = await db
+      .update(products)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(products.id, id))
+      .returning();
+    if (!row) throw NOT_FOUND();
+    return toDto(row);
+  } catch (err) {
+    if (isUniqueViolation(err, "products_sku_unique")) throw SKU_TAKEN();
+    throw err;
+  }
 }

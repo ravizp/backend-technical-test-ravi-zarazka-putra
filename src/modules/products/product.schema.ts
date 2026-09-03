@@ -22,6 +22,8 @@ export const createProductSchema = z
   })
   .openapi("CreateProduct");
 
+export const updateProductSchema = createProductSchema.partial().openapi("UpdateProduct");
+
 export const listProductQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).optional().openapi({ example: "oil" }),
   isActive: z
@@ -33,4 +35,5 @@ export const listProductQuerySchema = paginationQuerySchema.extend({
 export const productListSchema = paginatedResponseSchema(productSchema);
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ListProductQuery = z.infer<typeof listProductQuerySchema>;
