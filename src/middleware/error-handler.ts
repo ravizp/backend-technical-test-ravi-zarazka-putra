@@ -42,7 +42,7 @@ export function onError(err: Error, c: Context): Response {
   return c.json(body, 500);
 }
 
-/** Response for routes that don't exist. */
+// Not Found handler
 export function notFound(c: Context): Response {
   const body: ErrorBody = {
     error: {

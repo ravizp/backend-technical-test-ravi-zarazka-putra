@@ -19,7 +19,7 @@ function toAuthUser(row: typeof users.$inferSelect): AuthUser {
   return { id: row.id, name: row.name, email: row.email, role: row.role };
 }
 
-/** Verify credentials and issue a JWT. */
+// login - verifys credentials JWT and token
 export async function login(input: LoginInput): Promise<{ token: string; user: AuthUser }> {
   const [row] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
 
@@ -32,7 +32,7 @@ export async function login(input: LoginInput): Promise<{ token: string; user: A
   return { token, user: toAuthUser(row) };
 }
 
-/** Load a user by id — used by the authenticate middleware. */
+// findAuthUserById
 export async function findAuthUserById(id: string): Promise<AuthUser | null> {
   const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return row ? toAuthUser(row) : null;
