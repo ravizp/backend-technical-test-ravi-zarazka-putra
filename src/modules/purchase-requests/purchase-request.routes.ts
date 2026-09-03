@@ -14,6 +14,7 @@ import {
   createPurchaseRequest,
   getPurchaseRequestById,
   removePurchaseRequestItem,
+  submitPurchaseRequest,
   updatePurchaseRequestItem,
   updatePurchaseRequestWarehouse,
 } from "./purchase-request.service.js";
@@ -159,4 +160,26 @@ purchaseRequestRoutes.openapi(
     await removePurchaseRequestItem(p.id, p.itemId, currentUser(c).id);
     return c.body(null, 204);
   },
+);
+
+// ---- submit: DRAFT -> SUBMITTED ----
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/{id}/submit",
+    tags: TAG,
+    summary: "Submit a DRAFT Purchase Request (DRAFT -> SUBMITTED)",
+    ...bearer,
+    middleware: protect("USER"),
+    request: { params: idParamSchema },
+    responses: {
+      200: jsonResponse(purchaseRequestSchema, "Submitted Purchase Request"),
+      403: errorResponse("Not the owner of this Purchase Request"),
+      404: errorResponse("Purchase Request not found"),
+      409: errorResponse("Purchase Request is not in DRAFT status"),
+      422: errorResponse("Purchase Request has no items / a product is inactive"),
+    },
+  }),
+  async (c) => c.json(await submitPurchaseRequest(c.req.valid("param").id, currentUser(c).id), 200),
 );
