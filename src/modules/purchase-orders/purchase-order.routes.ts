@@ -3,11 +3,14 @@ import { currentUser, protect, type AuthEnv } from "../auth/auth.middleware.js";
 import { createRouter, errorResponse, idParamSchema, jsonResponse } from "../../openapi.js";
 import {
   createPurchaseOrderSchema,
+  listPurchaseOrderQuerySchema,
+  purchaseOrderListSchema,
   purchaseOrderSchema,
 } from "./purchase-order.schema.js";
 import {
   createPurchaseOrder,
   getPurchaseOrderById,
+  listPurchaseOrders,
   markPurchaseOrderAsOrdered,
 } from "./purchase-order.service.js";
 
@@ -36,6 +39,20 @@ purchaseOrderRoutes.openapi(
     },
   }),
   async (c) => c.json(await createPurchaseOrder(c.req.valid("json"), currentUser(c).id), 201),
+);
+
+purchaseOrderRoutes.openapi(
+  createRoute({
+    method: "get",
+    path: "/",
+    tags: TAG,
+    summary: "List Purchase Orders",
+    ...bearer,
+    middleware: protect(),
+    request: { query: listPurchaseOrderQuerySchema },
+    responses: { 200: jsonResponse(purchaseOrderListSchema, "Paginated Purchase Orders") },
+  }),
+  async (c) => c.json(await listPurchaseOrders(c.req.valid("query")), 200),
 );
 
 purchaseOrderRoutes.openapi(

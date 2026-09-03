@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db/connection-postgresql.js";
 import {
   products,
@@ -11,7 +11,8 @@ import {
 import { isUniqueViolation } from "../../lib/db-errors.js";
 import { nextDocumentNumber } from "../../lib/document-number.js";
 import { AppError } from "../../lib/error-handler-http-status-codes.js";
-import type { CreatePurchaseOrderInput } from "./purchase-order.schema.js";
+import { limitOffset, paginated } from "../../lib/pagination.js";
+import type { CreatePurchaseOrderInput, ListPurchaseOrderQuery } from "./purchase-order.schema.js";
 
 type PoRow = typeof purchaseOrders.$inferSelect;
 
@@ -58,8 +59,39 @@ export async function getPurchaseOrderById(id: string) {
   return { ...headerDto(row), items: await itemsWithProduct(id) };
 }
 
-// ---- create: from an APPROVED PR ----
+// list purchase orders, filterable by status, supplier, and/or warehouse
+export async function listPurchaseOrders(query: ListPurchaseOrderQuery) {
+  const filters = [];
+  if (query.status) filters.push(eq(purchaseOrders.status, query.status));
+  if (query.supplierId) filters.push(eq(purchaseOrders.supplierId, query.supplierId));
+  if (query.warehouseId) filters.push(eq(purchaseOrders.warehouseId, query.warehouseId));
+  const where = filters.length > 0 ? and(...filters) : undefined;
 
+  const [totalRow] = await db.select({ value: count() }).from(purchaseOrders).where(where);
+  const { limit, offset } = limitOffset(query);
+  const rows = await db
+    .select()
+    .from(purchaseOrders)
+    .where(where)
+    .orderBy(desc(purchaseOrders.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  const ids = rows.map((r) => r.id);
+  const counts = ids.length
+    ? await db
+        .select({ poId: purchaseOrderItems.purchaseOrderId, n: count() })
+        .from(purchaseOrderItems)
+        .where(inArray(purchaseOrderItems.purchaseOrderId, ids))
+        .groupBy(purchaseOrderItems.purchaseOrderId)
+    : [];
+  const byPo = new Map(counts.map((c) => [c.poId, c.n]));
+
+  const data = rows.map((r) => ({ ...headerDto(r), itemCount: byPo.get(r.id) ?? 0 }));
+  return paginated(data, totalRow?.value ?? 0, query);
+}
+
+// create: from an APPROVED PR
 export async function createPurchaseOrder(input: CreatePurchaseOrderInput, createdBy: string) {
   const [pr] = await db
     .select({ status: purchaseRequests.status, warehouseId: purchaseRequests.warehouseId })
