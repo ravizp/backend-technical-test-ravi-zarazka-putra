@@ -1,6 +1,6 @@
 import { createRoute } from "@hono/zod-openapi";
 import { createRouter, errorResponse, jsonResponse } from "../../openapi.js";
-import { authenticate, currentUser, type AuthEnv } from "./auth.middleware.js";
+import { currentUser, protect, type AuthEnv } from "./auth.middleware.js";
 import { authUserSchema, loginBodySchema, loginResponseSchema } from "./auth.schema.js";
 import { login } from "./auth.service.js";
 
@@ -32,7 +32,7 @@ const meRoute = createRoute({
   tags: ["Auth"],
   summary: "Get the authenticated user",
   security: [{ bearerAuth: [] }],
-  middleware: [authenticate] as const,
+  middleware: protect(),
   responses: {
     200: jsonResponse(authUserSchema, "The current user"),
     401: errorResponse("Missing, malformed, or expired token"),
