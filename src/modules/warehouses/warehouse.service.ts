@@ -4,7 +4,11 @@ import { warehouses } from "../../db/schema/index.js";
 import { isUniqueViolation } from "../../lib/db-errors.js";
 import { AppError } from "../../lib/error-handler-http-status-codes.js";
 import { limitOffset, paginated } from "../../lib/pagination.js";
-import type { CreateWarehouseInput, ListWarehouseQuery } from "./warehouse.schema.js";
+import type {
+  CreateWarehouseInput,
+  ListWarehouseQuery,
+  UpdateWarehouseInput,
+} from "./warehouse.schema.js";
 
 type WarehouseRow = typeof warehouses.$inferSelect;
 
@@ -35,6 +39,12 @@ export async function createWarehouse(input: CreateWarehouseInput) {
   }
 }
 
+export async function getWarehouseById(id: string) {
+  const [row] = await db.select().from(warehouses).where(eq(warehouses.id, id)).limit(1);
+  if (!row) throw NOT_FOUND();
+  return toDto(row);
+}
+
 export async function listWarehouses(query: ListWarehouseQuery) {
   const filters = [];
   if (query.q) {
@@ -62,3 +72,18 @@ export async function listWarehouses(query: ListWarehouseQuery) {
   return paginated(rows.map(toDto), totalRow?.value ?? 0, query);
 }
 
+export async function updateWarehouse(id: string, input: UpdateWarehouseInput) {
+  if (Object.keys(input).length === 0) return getWarehouseById(id);
+  try {
+    const [row] = await db
+      .update(warehouses)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(warehouses.id, id))
+      .returning();
+    if (!row) throw NOT_FOUND();
+    return toDto(row);
+  } catch (err) {
+    if (isUniqueViolation(err, "warehouses_code_unique")) throw CODE_TAKEN();
+    throw err;
+  }
+}

@@ -22,6 +22,8 @@ export const createWarehouseSchema = z
   })
   .openapi("CreateWarehouse");
 
+export const updateWarehouseSchema = createWarehouseSchema.partial().openapi("UpdateWarehouse");
+
 export const listWarehouseQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).optional().openapi({ example: "jakarta" }),
   isActive: z
@@ -33,4 +35,5 @@ export const listWarehouseQuerySchema = paginationQuerySchema.extend({
 export const warehouseListSchema = paginatedResponseSchema(warehouseSchema);
 
 export type CreateWarehouseInput = z.infer<typeof createWarehouseSchema>;
+export type UpdateWarehouseInput = z.infer<typeof updateWarehouseSchema>;
 export type ListWarehouseQuery = z.infer<typeof listWarehouseQuerySchema>;
