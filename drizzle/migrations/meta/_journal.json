@@ -6,14 +6,21 @@
       "idx": 0,
       "version": "7",
       "when": 1788408249158,
-      "tag": "0000_create_users",
+      "tag": "0000_create_table_users",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
       "when": 1788419515109,
-      "tag": "0001_create_products",
+      "tag": "0001_create_table_products",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788425751243,
+      "tag": "0002_create_table_suppliers",
       "breakpoints": true
     }
   ]
