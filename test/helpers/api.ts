@@ -14,7 +14,12 @@ interface ApiResponse<T = Record<string, unknown>> {
   body: T;
 }
 
-/** Fire a request at the real Hono app and return `{ status, body }`. */
+//Helper ErrorBody interface for API responses
+export interface ErrorBody {
+  error: { code: string; message: string; details?: unknown };
+}
+
+// Helper function to make API requests in tests
 export async function api<T = Record<string, unknown>>(
   method: Method,
   path: string,
