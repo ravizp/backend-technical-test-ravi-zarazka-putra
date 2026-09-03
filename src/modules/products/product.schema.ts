@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { paginatedResponseSchema, paginationQuerySchema } from "../../lib/pagination.js";
 
 export const productSchema = z
   .object({
@@ -21,4 +22,15 @@ export const createProductSchema = z
   })
   .openapi("CreateProduct");
 
+export const listProductQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().min(1).optional().openapi({ example: "oil" }),
+  isActive: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+});
+
+export const productListSchema = paginatedResponseSchema(productSchema);
+
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type ListProductQuery = z.infer<typeof listProductQuerySchema>;
