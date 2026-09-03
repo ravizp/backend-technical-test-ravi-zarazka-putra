@@ -64,6 +64,13 @@
       "when": 1788429255096,
       "tag": "0008_create_table_purchase_request_items",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788430140185,
+      "tag": "0009_create_table_purchase_orders",
+      "breakpoints": true
     }
   ]
 }
