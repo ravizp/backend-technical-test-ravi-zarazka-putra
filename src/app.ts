@@ -6,6 +6,7 @@ import { authRoutes } from "./modules/auth/auth.routes.js";
 import { productRoutes } from "./modules/products/product.routes.js";
 import { supplierRoutes } from "./modules/suppliers/supplier.routes.js";
 import { inventoryRoutes } from "./modules/inventory/inventory.routes.js";
+import { purchaseOrderRoutes } from "./modules/purchase-orders/purchase-order.routes.js";
 import { purchaseRequestRoutes } from "./modules/purchase-requests/purchase-request.routes.js";
 import { warehouseRoutes } from "./modules/warehouses/warehouse.routes.js";
 
@@ -30,6 +31,7 @@ export function createApp(): OpenAPIHono {
   app.route("/api/warehouses", warehouseRoutes);
   app.route("/api", inventoryRoutes);
   app.route("/api/purchase-requests", purchaseRequestRoutes);
+  app.route("/api/purchase-orders", purchaseOrderRoutes);
 
   // OpenAPI spec + Swagger UI
   app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {

@@ -1,0 +1,52 @@
+import { createRoute } from "@hono/zod-openapi";
+import { currentUser, protect, type AuthEnv } from "../auth/auth.middleware.js";
+import { createRouter, errorResponse, idParamSchema, jsonResponse } from "../../openapi.js";
+import {
+  createPurchaseOrderSchema,
+  purchaseOrderSchema,
+} from "./purchase-order.schema.js";
+import { createPurchaseOrder, getPurchaseOrderById } from "./purchase-order.service.js";
+
+export const purchaseOrderRoutes = createRouter<AuthEnv>();
+
+const TAG = ["Purchase Orders"];
+const bearer = { security: [{ bearerAuth: [] }] };
+
+purchaseOrderRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/",
+    tags: TAG,
+    summary: "Create a Purchase Order from an APPROVED Purchase Request",
+    ...bearer,
+    middleware: protect("USER"),
+    request: {
+      body: { content: { "application/json": { schema: createPurchaseOrderSchema } } },
+    },
+    responses: {
+      201: jsonResponse(purchaseOrderSchema, "Created Purchase Order (status DRAFT)"),
+      403: errorResponse("Only a USER can create a Purchase Order"),
+      404: errorResponse("Purchase Request not found"),
+      409: errorResponse("Purchase Request not APPROVED / already has a Purchase Order"),
+      422: errorResponse("Supplier not found or inactive"),
+    },
+  }),
+  async (c) => c.json(await createPurchaseOrder(c.req.valid("json"), currentUser(c).id), 201),
+);
+
+purchaseOrderRoutes.openapi(
+  createRoute({
+    method: "get",
+    path: "/{id}",
+    tags: TAG,
+    summary: "Get a Purchase Order by id",
+    ...bearer,
+    middleware: protect(),
+    request: { params: idParamSchema },
+    responses: {
+      200: jsonResponse(purchaseOrderSchema, "Purchase Order with items"),
+      404: errorResponse("Purchase Order not found"),
+    },
+  }),
+  async (c) => c.json(await getPurchaseOrderById(c.req.valid("param").id), 200),
+);
