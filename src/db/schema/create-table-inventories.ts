@@ -4,7 +4,6 @@ import { products } from "./create-table-products.js";
 import { primaryId, timestamps } from "./helpers/set-columns.js";
 import { warehouses } from "./create-table-warehouses.js";
 
-/** Current stock balance — exactly one row per (warehouse, product). */
 export const inventories = pgTable(
   "inventories",
   {

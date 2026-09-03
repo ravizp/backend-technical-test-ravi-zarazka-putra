@@ -10,3 +10,4 @@ export * from "./create-table-purchase-requests.js";
 export * from "./create-table-purchase-request-items.js";
 export * from "./create-table-purchase-orders.js";
 export * from "./create-table-purchase-order-items.js";
+export * from "./create-table-goods-receipts.js";
