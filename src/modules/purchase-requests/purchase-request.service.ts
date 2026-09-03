@@ -298,6 +298,21 @@ export async function approvePurchaseRequest(id: string, approverId: string) {
   return getPurchaseRequestById(id);
 }
 
+export async function rejectPurchaseRequest(id: string, approverId: string, reason: string) {
+  await loadSubmittedPr(id);
+  await db
+    .update(purchaseRequests)
+    .set({
+      status: "REJECTED",
+      approvedBy: approverId,
+      approvedAt: new Date(),
+      rejectionReason: reason,
+      updatedAt: new Date(),
+    })
+    .where(eq(purchaseRequests.id, id));
+  return getPurchaseRequestById(id);
+}
+
 export {
   assertNoDuplicateProducts,
   assertProductsUsable,

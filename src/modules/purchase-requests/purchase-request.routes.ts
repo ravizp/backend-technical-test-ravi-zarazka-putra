@@ -6,6 +6,7 @@ import {
   createPurchaseRequestSchema,
   prItemParamSchema,
   purchaseRequestSchema,
+  rejectPurchaseRequestSchema,
   updateItemSchema,
   updatePurchaseRequestSchema,
 } from "./purchase-request.schema.js";
@@ -14,6 +15,7 @@ import {
   approvePurchaseRequest,
   createPurchaseRequest,
   getPurchaseRequestById,
+  rejectPurchaseRequest,
   removePurchaseRequestItem,
   submitPurchaseRequest,
   updatePurchaseRequestItem,
@@ -203,4 +205,35 @@ purchaseRequestRoutes.openapi(
     },
   }),
   async (c) => c.json(await approvePurchaseRequest(c.req.valid("param").id, currentUser(c).id), 200),
+);
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/{id}/reject",
+    tags: TAG,
+    summary: "Reject a SUBMITTED Purchase Request (SUBMITTED -> REJECTED)",
+    ...bearer,
+    middleware: protect("APPROVER"),
+    request: {
+      params: idParamSchema,
+      body: { content: { "application/json": { schema: rejectPurchaseRequestSchema } } },
+    },
+    responses: {
+      200: jsonResponse(purchaseRequestSchema, "Rejected Purchase Request"),
+      403: errorResponse("Only an APPROVER can reject"),
+      404: errorResponse("Purchase Request not found"),
+      409: errorResponse("Purchase Request is not SUBMITTED"),
+      422: errorResponse("reason is missing or empty"),
+    },
+  }),
+  async (c) =>
+    c.json(
+      await rejectPurchaseRequest(
+        c.req.valid("param").id,
+        currentUser(c).id,
+        c.req.valid("json").reason,
+      ),
+      200,
+    ),
 );
