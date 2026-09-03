@@ -7,3 +7,4 @@ export * from "./create-table-document-sequences.js";
 export * from "./create-table-inventories.js";
 export * from "./create-table-inventory-movements.js";
 export * from "./create-table-purchase-requests.js";
+export * from "./create-table-purchase-request-items.js";
