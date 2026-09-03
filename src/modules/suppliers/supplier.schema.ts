@@ -22,4 +22,15 @@ export const createSupplierSchema = z
   })
   .openapi("CreateSupplier");
 
+export const listSupplierQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().min(1).optional().openapi({ example: "mitra" }),
+  isActive: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+});
+
+export const supplierListSchema = paginatedResponseSchema(supplierSchema);
+
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
+export type ListSupplierQuery = z.infer<typeof listSupplierQuerySchema>;
