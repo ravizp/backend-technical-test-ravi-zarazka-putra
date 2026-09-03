@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { notFound, onError } from "./middleware/error-handler.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { productRoutes } from "./modules/products/product.routes.js";
+import { supplierRoutes } from "./modules/suppliers/supplier.routes.js";
 
 // Create the main app with all routes and middleware
 export function createApp(): OpenAPIHono {
@@ -22,6 +23,7 @@ export function createApp(): OpenAPIHono {
   // Feature modules
   app.route("/api/auth", authRoutes);
   app.route("/api/products", productRoutes);
+  app.route("/api/suppliers", supplierRoutes);
 
   // OpenAPI spec + Swagger UI
   app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
