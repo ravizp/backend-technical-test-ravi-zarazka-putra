@@ -12,11 +12,12 @@ error sendiri — semua error dilempar sebagai exception dan dibentuk di satu te
 {
   "error": {
     "code": "PURCHASE_REQUEST_NOT_APPROVED",
-    "message": "Purchase Request must be approved before creating a Purchase Order.",
-    "details": null
+    "message": "Purchase Request must be approved before creating a Purchase Order."
   }
 }
 ```
+
+`details` hanya muncul kalau ada isinya (mis. daftar issue validasi) — kalau tidak, field-nya tidak dikirim sama sekali.
 
 | field           | tipe             | keterangan                                                                        |
 | --------------- | ---------------- | --------------------------------------------------------------------------------- |
@@ -74,15 +75,16 @@ Body yang gagal di-parse schema (Zod) selalu jadi:
 
 ### Umum / HTTP
 
-| code                    | status | kapan                                                |
-| ----------------------- | ------ | ---------------------------------------------------- |
-| `VALIDATION_ERROR`      | 422    | Body gagal validasi schema                           |
-| `UNAUTHORIZED`          | 401    | Tidak ada / salah token                              |
-| `FORBIDDEN`             | 403    | Role tidak berhak (mis. USER coba approve PR)        |
-| `NOT_FOUND`             | 404    | Resource by id tidak ada                             |
-| `ROUTE_NOT_FOUND`       | 404    | URL tidak terdaftar                                  |
-| `CONFLICT`              | 409    | Konflik generik yang tidak punya code lebih spesifik |
-| `INTERNAL_SERVER_ERROR` | 500    | Exception tak tertangani                             |
+| code                    | status | kapan                                                      |
+| ----------------------- | ------ | ---------------------------------------------------------- |
+| `VALIDATION_ERROR`      | 422    | Body gagal validasi schema (Zod)                           |
+| `BAD_REQUEST`           | 400    | Body tidak bisa di-parse sama sekali (JSON rusak / kosong) |
+| `UNAUTHORIZED`          | 401    | Tidak ada / salah / kadaluarsa token                       |
+| `FORBIDDEN`             | 403    | Role tidak berhak (mis. USER coba approve PR)              |
+| `NOT_FOUND`             | 404    | Resource by id tidak ada                                   |
+| `ROUTE_NOT_FOUND`       | 404    | URL / method tidak terdaftar                               |
+| `CONFLICT`              | 409    | Konflik generik yang tidak punya code lebih spesifik       |
+| `INTERNAL_SERVER_ERROR` | 500    | Exception tak tertangani                                   |
 
 ### Auth
 
@@ -142,10 +144,13 @@ Body yang gagal di-parse schema (Zod) selalu jadi:
 - Setiap error melewati satu handler `onError`. Handler mengenali:
   - `AppError` (error domain yang kita lempar sendiri) → pakai `status`, `code`,
     `message`, `details` dari objeknya.
-  - `ZodError` → `422` + `VALIDATION_ERROR`.
-  - `HTTPException` bawaan Hono → dipetakan ke `HTTP_EXCEPTION`.
+  - `ZodError` + validasi schema route yang gagal (lewat `defaultHook` di
+    `createRouter`) → `422` + `VALIDATION_ERROR`, `details` berisi daftar issue Zod.
+  - `HTTPException` bawaan Hono (mis. body JSON rusak) → dipetakan ke code sesuai
+    status: `400 → BAD_REQUEST`, `401 → UNAUTHORIZED`, `403 → FORBIDDEN`, dst.
   - selain itu → `500` + `INTERNAL_SERVER_ERROR`, error asli di-log ke server, detail
     internal tidak dibocorkan ke client.
-- Route yang tidak terdaftar ditangani `notFound` → `404` + `ROUTE_NOT_FOUND`.
+- Route yang tidak terdaftar (atau method salah) ditangani `notFound` → `404` +
+  `ROUTE_NOT_FOUND`.
 - Ketika sebuah operasi gagal di tengah transaksi (mis. Goods Receipt), transaksi
   di-rollback penuh sebelum error dikembalikan — tidak ada data setengah jadi.
