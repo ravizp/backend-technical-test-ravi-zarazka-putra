@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { truncateAll } from "../helpers/db.js";
-import { seedBasics } from "../helpers/fixtures.js";
-import { api } from "../helpers/api.js";
+import { truncateAll } from "../helpers-testing/db-connection.js";
+import { seedBasics } from "../helpers-testing/fixtures-seeders.js";
+import { api } from "../helpers-testing/api-request.js";
 
 describe("test harness", () => {
   beforeEach(truncateAll);
