@@ -15,4 +15,4 @@ export const products = pgTable(
 );
 
 export type ProductRow = typeof products.$inferSelect;
-products.$inferInsert;
+export type NewProductRow = typeof products.$inferInsert;
