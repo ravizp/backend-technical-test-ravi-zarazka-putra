@@ -147,5 +147,22 @@ export async function createPurchaseOrder(input: CreatePurchaseOrderInput, creat
   return getPurchaseOrderById(id);
 }
 
+// ---- mark as ordered: DRAFT -> ORDERED ----
+
+export async function markPurchaseOrderAsOrdered(id: string) {
+  const po = await loadRow(id);
+  if (po.status !== "DRAFT") {
+    throw AppError.conflict(
+      `Only a DRAFT Purchase Order can be marked as ORDERED (current status: ${po.status})`,
+      "PURCHASE_ORDER_INVALID_TRANSITION",
+    );
+  }
+  await db
+    .update(purchaseOrders)
+    .set({ status: "ORDERED", updatedAt: new Date() })
+    .where(eq(purchaseOrders.id, id));
+  return getPurchaseOrderById(id);
+}
+
 export { headerDto, itemsWithProduct, loadRow };
 export type { PoRow };

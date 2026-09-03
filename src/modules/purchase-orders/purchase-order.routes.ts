@@ -5,7 +5,11 @@ import {
   createPurchaseOrderSchema,
   purchaseOrderSchema,
 } from "./purchase-order.schema.js";
-import { createPurchaseOrder, getPurchaseOrderById } from "./purchase-order.service.js";
+import {
+  createPurchaseOrder,
+  getPurchaseOrderById,
+  markPurchaseOrderAsOrdered,
+} from "./purchase-order.service.js";
 
 export const purchaseOrderRoutes = createRouter<AuthEnv>();
 
@@ -49,4 +53,23 @@ purchaseOrderRoutes.openapi(
     },
   }),
   async (c) => c.json(await getPurchaseOrderById(c.req.valid("param").id), 200),
+);
+
+purchaseOrderRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/{id}/mark-ordered",
+    tags: TAG,
+    summary: "Mark a DRAFT Purchase Order as ORDERED",
+    ...bearer,
+    middleware: protect("USER"),
+    request: { params: idParamSchema },
+    responses: {
+      200: jsonResponse(purchaseOrderSchema, "Purchase Order (status ORDERED)"),
+      403: errorResponse("Only a USER can mark a Purchase Order as ordered"),
+      404: errorResponse("Purchase Order not found"),
+      409: errorResponse("Purchase Order is not in DRAFT status"),
+    },
+  }),
+  async (c) => c.json(await markPurchaseOrderAsOrdered(c.req.valid("param").id), 200),
 );
