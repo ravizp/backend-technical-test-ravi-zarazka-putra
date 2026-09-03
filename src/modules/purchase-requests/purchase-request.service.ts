@@ -272,6 +272,32 @@ export async function submitPurchaseRequest(id: string, userId: string) {
   return getPurchaseRequestById(id);
 }
 
+//approval: SUBMITTED -> APPROVED / REJECTED
+async function loadSubmittedPr(id: string): Promise<PrRow> {
+  const pr = await loadRow(id);
+  if (pr.status !== "SUBMITTED") {
+    throw AppError.conflict(
+      `Only a SUBMITTED Purchase Request can be approved or rejected (current status: ${pr.status})`,
+      "PURCHASE_REQUEST_NOT_SUBMITTED",
+    );
+  }
+  return pr;
+}
+
+export async function approvePurchaseRequest(id: string, approverId: string) {
+  await loadSubmittedPr(id);
+  await db
+    .update(purchaseRequests)
+    .set({
+      status: "APPROVED",
+      approvedBy: approverId,
+      approvedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(purchaseRequests.id, id));
+  return getPurchaseRequestById(id);
+}
+
 export {
   assertNoDuplicateProducts,
   assertProductsUsable,

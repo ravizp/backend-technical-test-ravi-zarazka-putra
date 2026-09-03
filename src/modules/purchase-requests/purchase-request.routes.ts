@@ -11,6 +11,7 @@ import {
 } from "./purchase-request.schema.js";
 import {
   addPurchaseRequestItem,
+  approvePurchaseRequest,
   createPurchaseRequest,
   getPurchaseRequestById,
   removePurchaseRequestItem,
@@ -182,4 +183,24 @@ purchaseRequestRoutes.openapi(
     },
   }),
   async (c) => c.json(await submitPurchaseRequest(c.req.valid("param").id, currentUser(c).id), 200),
+);
+
+//approval: APPROVER only, SUBMITTED only
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/{id}/approve",
+    tags: TAG,
+    summary: "Approve a SUBMITTED Purchase Request (SUBMITTED -> APPROVED)",
+    ...bearer,
+    middleware: protect("APPROVER"),
+    request: { params: idParamSchema },
+    responses: {
+      200: jsonResponse(purchaseRequestSchema, "Approved Purchase Request"),
+      403: errorResponse("Only an APPROVER can approve"),
+      404: errorResponse("Purchase Request not found"),
+      409: errorResponse("Purchase Request is not SUBMITTED"),
+    },
+  }),
+  async (c) => c.json(await approvePurchaseRequest(c.req.valid("param").id, currentUser(c).id), 200),
 );
