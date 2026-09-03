@@ -21,6 +21,11 @@ export const updatePurchaseRequestSchema = z
 
 export const addItemSchema = prItemInputSchema.openapi("AddPurchaseRequestItem");
 
+export const prItemParamSchema = z.object({
+  id: z.uuid().openapi({ param: { name: "id", in: "path" } }),
+  itemId: z.uuid().openapi({ param: { name: "itemId", in: "path" } }),
+});
+
 export const updateItemSchema = z
   .object({ quantity: z.number().int().positive() })
   .openapi("UpdatePurchaseRequestItem");
