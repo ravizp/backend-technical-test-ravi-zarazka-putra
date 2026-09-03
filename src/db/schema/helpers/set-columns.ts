@@ -8,3 +8,8 @@ export const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 };
+
+// created_at only
+export const createdAtOnly = {
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+};
