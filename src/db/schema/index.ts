@@ -4,4 +4,5 @@ export * from "./create-table-products.js";
 export * from "./create-table-suppliers.js";
 export * from "./create-table-warehouses.js";
 export * from "./create-table-document-sequences.js";
+export * from "./create-table-inventories.js";
 
