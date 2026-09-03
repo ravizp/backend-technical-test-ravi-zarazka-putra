@@ -6,8 +6,9 @@ import {
   listProductQuerySchema,
   productListSchema,
   productSchema,
+  updateProductSchema,
 } from "./product.schema.js";
-import { createProduct, getProductById, listProducts } from "./product.service.js";
+import { createProduct, getProductById, listProducts, updateProduct } from "./product.service.js";
 
 export const productRoutes = createRouter();
 
@@ -58,4 +59,25 @@ productRoutes.openapi(
     },
   }),
   async (c) => c.json(await getProductById(c.req.valid("param").id), 200),
+);
+
+productRoutes.openapi(
+  createRoute({
+    method: "patch",
+    path: "/{id}",
+    tags: TAG,
+    summary: "Update a product",
+    ...AUTH,
+    request: {
+      params: idParamSchema,
+      body: { content: { "application/json": { schema: updateProductSchema } } },
+    },
+    responses: {
+      200: jsonResponse(productSchema, "Updated product"),
+      404: errorResponse("Product not found"),
+      409: errorResponse("SKU already exists"),
+      422: errorResponse("Validation error"),
+    },
+  }),
+  async (c) => c.json(await updateProduct(c.req.valid("param").id, c.req.valid("json")), 200),
 );
