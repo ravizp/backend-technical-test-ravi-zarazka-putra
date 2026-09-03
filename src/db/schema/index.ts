@@ -1,2 +1,2 @@
-// Export the database schema for use in other parts of the application
-export {};
+// export schema definitions from all files in this directory
+export * from "./create-table-users.js";
