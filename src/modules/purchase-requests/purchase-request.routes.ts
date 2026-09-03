@@ -2,10 +2,21 @@ import { createRoute } from "@hono/zod-openapi";
 import { currentUser, protect, type AuthEnv } from "../auth/auth.middleware.js";
 import { createRouter, errorResponse, idParamSchema, jsonResponse } from "../../openapi.js";
 import {
+  addItemSchema,
   createPurchaseRequestSchema,
+  prItemParamSchema,
   purchaseRequestSchema,
+  updateItemSchema,
+  updatePurchaseRequestSchema,
 } from "./purchase-request.schema.js";
-import { createPurchaseRequest, getPurchaseRequestById } from "./purchase-request.service.js";
+import {
+  addPurchaseRequestItem,
+  createPurchaseRequest,
+  getPurchaseRequestById,
+  removePurchaseRequestItem,
+  updatePurchaseRequestItem,
+  updatePurchaseRequestWarehouse,
+} from "./purchase-request.service.js";
 
 export const purchaseRequestRoutes = createRouter<AuthEnv>();
 
@@ -47,4 +58,105 @@ purchaseRequestRoutes.openapi(
     },
   }),
   async (c) => c.json(await getPurchaseRequestById(c.req.valid("param").id), 200),
+);
+
+// draft editing: owner + DRAFT only
+const draftEditResponses = {
+  200: jsonResponse(purchaseRequestSchema, "Updated Purchase Request"),
+  403: errorResponse("Not the owner of this Purchase Request"),
+  404: errorResponse("Purchase Request (or item) not found"),
+  409: errorResponse("Purchase Request is no longer a DRAFT"),
+  422: errorResponse("Validation / inactive product / duplicate product"),
+};
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "patch",
+    path: "/{id}",
+    tags: TAG,
+    summary: "Change the warehouse of a DRAFT Purchase Request",
+    ...bearer,
+    middleware: protect("USER"),
+    request: {
+      params: idParamSchema,
+      body: { content: { "application/json": { schema: updatePurchaseRequestSchema } } },
+    },
+    responses: draftEditResponses,
+  }),
+  async (c) =>
+    c.json(
+      await updatePurchaseRequestWarehouse(
+        c.req.valid("param").id,
+        currentUser(c).id,
+        c.req.valid("json"),
+      ),
+      200,
+    ),
+);
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/{id}/items",
+    tags: TAG,
+    summary: "Add an item to a DRAFT Purchase Request",
+    ...bearer,
+    middleware: protect("USER"),
+    request: {
+      params: idParamSchema,
+      body: { content: { "application/json": { schema: addItemSchema } } },
+    },
+    responses: { ...draftEditResponses, 201: draftEditResponses[200] },
+  }),
+  async (c) =>
+    c.json(
+      await addPurchaseRequestItem(c.req.valid("param").id, currentUser(c).id, c.req.valid("json")),
+      201,
+    ),
+);
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "patch",
+    path: "/{id}/items/{itemId}",
+    tags: TAG,
+    summary: "Change an item's quantity on a DRAFT Purchase Request",
+    ...bearer,
+    middleware: protect("USER"),
+    request: {
+      params: prItemParamSchema,
+      body: { content: { "application/json": { schema: updateItemSchema } } },
+    },
+    responses: draftEditResponses,
+  }),
+  async (c) => {
+    const p = c.req.valid("param");
+    return c.json(
+      await updatePurchaseRequestItem(p.id, p.itemId, currentUser(c).id, c.req.valid("json")),
+      200,
+    );
+  },
+);
+
+purchaseRequestRoutes.openapi(
+  createRoute({
+    method: "delete",
+    path: "/{id}/items/{itemId}",
+    tags: TAG,
+    summary: "Remove an item from a DRAFT Purchase Request",
+    ...bearer,
+    middleware: protect("USER"),
+    request: { params: prItemParamSchema },
+    responses: {
+      204: { description: "Item removed" },
+      403: errorResponse("Not the owner of this Purchase Request"),
+      404: errorResponse("Purchase Request (or item) not found"),
+      409: errorResponse("Purchase Request is no longer a DRAFT"),
+    },
+  }),
+  async (c) => {
+    const p = c.req.valid("param");
+    await removePurchaseRequestItem(p.id, p.itemId, currentUser(c).id);
+    return c.body(null, 204);
+  },
 );
