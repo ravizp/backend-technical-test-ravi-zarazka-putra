@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { api, type ErrorBody } from "../helpers/api.js";
-import { truncateAll } from "../helpers/db.js";
-import { seedBasics, type Fixtures } from "../helpers/fixtures.js";
+import { api, type ErrorBody } from "../helpers-testing/api-request.js";
+import { truncateAll } from "../helpers-testing/db-connection.js";
+import { seedBasics, type Fixtures } from "../helpers-testing/fixtures-seeders.js";
 
 describe("Purchase Request business rules", () => {
   let f: Fixtures;
