@@ -1,8 +1,17 @@
 import { createRoute } from "@hono/zod-openapi";
 import { protect } from "../auth/auth.middleware.js";
-import { createRouter, errorResponse, jsonResponse } from "../../openapi.js";
-import { createSupplierSchema, supplierSchema } from "./supplier.schema.js";
-import { createSupplier } from "./supplier.service.js";
+import { createRouter, errorResponse, idParamSchema, jsonResponse } from "../../openapi.js";
+import {
+  createSupplierSchema,
+  listSupplierQuerySchema,
+  supplierListSchema,
+  supplierSchema,
+} from "./supplier.schema.js";
+import {
+  createSupplier,
+  getSupplierById,
+  listSuppliers,
+} from "./supplier.service.js";
 
 export const supplierRoutes = createRouter();
 
@@ -23,4 +32,33 @@ supplierRoutes.openapi(
     },
   }),
   async (c) => c.json(await createSupplier(c.req.valid("json")), 201),
+);
+
+supplierRoutes.openapi(
+  createRoute({
+    method: "get",
+    path: "/",
+    tags: TAG,
+    summary: "List suppliers",
+    ...AUTH,
+    request: { query: listSupplierQuerySchema },
+    responses: { 200: jsonResponse(supplierListSchema, "Paginated suppliers") },
+  }),
+  async (c) => c.json(await listSuppliers(c.req.valid("query")), 200),
+);
+
+supplierRoutes.openapi(
+  createRoute({
+    method: "get",
+    path: "/{id}",
+    tags: TAG,
+    summary: "Get a supplier by id",
+    ...AUTH,
+    request: { params: idParamSchema },
+    responses: {
+      200: jsonResponse(supplierSchema, "Supplier"),
+      404: errorResponse("Supplier not found"),
+    },
+  }),
+  async (c) => c.json(await getSupplierById(c.req.valid("param").id), 200),
 );
