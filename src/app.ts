@@ -3,6 +3,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { logger } from "hono/logger";
 import { notFound, onError } from "./middleware/error-handler.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { productRoutes } from "./modules/products/product.routes.js";
 
 // Create the main app with all routes and middleware
 export function createApp(): OpenAPIHono {
@@ -20,6 +21,7 @@ export function createApp(): OpenAPIHono {
 
   // Feature modules
   app.route("/api/auth", authRoutes);
+  app.route("/api/products", productRoutes);
 
   // OpenAPI spec + Swagger UI
   app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
