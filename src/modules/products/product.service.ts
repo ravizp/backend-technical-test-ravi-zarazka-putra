@@ -1,8 +1,10 @@
+import { and, count, eq, ilike, or } from "drizzle-orm";
 import { db } from "../../db/connection-postgresql.js";
 import { products } from "../../db/schema/index.js";
 import { isUniqueViolation } from "../../lib/db-errors.js";
 import { AppError } from "../../lib/error-handler-http-status-codes.js";
-import type { CreateProductInput } from "./product.schema.js";
+import { limitOffset, paginated } from "../../lib/pagination.js";
+import type { CreateProductInput, ListProductQuery } from "./product.schema.js";
 
 type ProductRow = typeof products.$inferSelect;
 
@@ -33,3 +35,29 @@ export async function createProduct(input: CreateProductInput) {
   }
 }
 
+export async function getProductById(id: string) {
+  const [row] = await db.select().from(products).where(eq(products.id, id)).limit(1);
+  if (!row) throw NOT_FOUND();
+  return toDto(row);
+}
+
+export async function listProducts(query: ListProductQuery) {
+  const filters = [];
+  if (query.q) {
+    filters.push(or(ilike(products.name, `%${query.q}%`), ilike(products.sku, `%${query.q}%`)));
+  }
+  if (query.isActive !== undefined) filters.push(eq(products.isActive, query.isActive));
+  const where = filters.length > 0 ? and(...filters) : undefined;
+
+  const [totalRow] = await db.select({ value: count() }).from(products).where(where);
+  const { limit, offset } = limitOffset(query);
+  const rows = await db
+    .select()
+    .from(products)
+    .where(where)
+    .orderBy(products.createdAt)
+    .limit(limit)
+    .offset(offset);
+
+  return paginated(rows.map(toDto), totalRow?.value ?? 0, query);
+}
