@@ -1,4 +1,4 @@
-// Custom application error class
+// Class Error handling HTTP status codes and messages
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;

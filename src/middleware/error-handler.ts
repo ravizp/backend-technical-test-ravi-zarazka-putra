@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { ZodError } from "zod";
-import { AppError } from "../lib/errors.js";
+import { AppError } from "../lib/error-handler-http-status-codes.js";
 
 interface ErrorBody {
   error: {
