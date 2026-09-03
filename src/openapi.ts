@@ -36,3 +36,8 @@ export function jsonResponse<T extends z.ZodType>(schema: T, description: string
 
 // OpenAPI Error Response Helper
 export const errorResponse = (description: string) => jsonResponse(errorResponseSchema, description);
+
+// OpenAPI Path Parameter Schema Helper
+export const idParamSchema = z.object({
+  id: z.uuid().openapi({ param: { name: "id", in: "path" }, example: "00000000-0000-0000-0000-000000000000" }),
+});
