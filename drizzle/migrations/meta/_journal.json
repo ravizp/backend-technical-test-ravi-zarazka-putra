@@ -78,6 +78,13 @@
       "when": 1788430164603,
       "tag": "0010_create_table_purchase_order_items",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788430885848,
+      "tag": "0011_create_table_goods_receipts",
+      "breakpoints": true
     }
   ]
 }
