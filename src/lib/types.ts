@@ -17,3 +17,13 @@ export type MovementReferenceType = (typeof MOVEMENT_REFERENCE_TYPES)[number];
 // Purchase Request status
 export const PURCHASE_REQUEST_STATUSES = ["DRAFT", "SUBMITTED", "APPROVED", "REJECTED"] as const;
 export type PurchaseRequestStatus = (typeof PURCHASE_REQUEST_STATUSES)[number];
+
+// Purchase Order status
+export const PURCHASE_ORDER_STATUSES = [
+  "DRAFT",
+  "ORDERED",
+  "PARTIALLY_RECEIVED",
+  "RECEIVED",
+  "CANCELLED",
+] as const;
+export type PurchaseOrderStatus = (typeof PURCHASE_ORDER_STATUSES)[number];
