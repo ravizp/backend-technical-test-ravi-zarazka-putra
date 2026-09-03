@@ -30,6 +30,14 @@ export const updateItemSchema = z
   .object({ quantity: z.number().int().positive() })
   .openapi("UpdatePurchaseRequestItem");
 
+export const rejectPurchaseRequestSchema = z
+  .object({
+    reason: z.string().trim().min(1, "reason is required").max(1000).openapi({
+      example: "Budget not available this quarter",
+    }),
+  })
+  .openapi("RejectPurchaseRequest");
+
 //responses purchase request and items
 export const purchaseRequestItemSchema = z
   .object({
