@@ -241,6 +241,37 @@ export async function removePurchaseRequestItem(id: string, itemId: string, user
   await touch(db, id);
 }
 
+// submit: DRAFT -> SUBMITTED
+export async function submitPurchaseRequest(id: string, userId: string) {
+  const pr = await loadRow(id);
+  if (pr.requestedBy !== userId) {
+    throw AppError.forbidden("You can only submit your own Purchase Request");
+  }
+  if (pr.status !== "DRAFT") {
+    throw AppError.conflict(
+      `Cannot submit a Purchase Request in status ${pr.status}`,
+      "PURCHASE_REQUEST_INVALID_TRANSITION",
+    );
+  }
+
+  const items = await itemsWithProduct(id);
+  if (items.length === 0) {
+    throw AppError.unprocessable(
+      "Cannot submit a Purchase Request with no items",
+      "PURCHASE_REQUEST_EMPTY",
+    );
+  }
+  // Re-check: a product may have been deactivated after it was added.
+  await assertProductsUsable(items.map((i) => i.productId));
+
+  await db
+    .update(purchaseRequests)
+    .set({ status: "SUBMITTED", submittedAt: new Date(), updatedAt: new Date() })
+    .where(eq(purchaseRequests.id, id));
+
+  return getPurchaseRequestById(id);
+}
+
 export {
   assertNoDuplicateProducts,
   assertProductsUsable,
