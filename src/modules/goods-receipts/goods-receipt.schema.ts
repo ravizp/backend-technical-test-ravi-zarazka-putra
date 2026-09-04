@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import { PURCHASE_ORDER_STATUSES } from "../../lib/types.js";
 
-//request body
+//body request
 export const createGoodsReceiptSchema = z
   .object({
     purchaseOrderId: z.uuid(),
@@ -17,7 +17,7 @@ export const createGoodsReceiptSchema = z
   })
   .openapi("CreateGoodsReceipt");
 
-//response
+//bentuk response
 export const goodsReceiptItemSchema = z
   .object({
     id: z.uuid(),
@@ -42,7 +42,7 @@ export const goodsReceiptSchema = z
   })
   .openapi("GoodsReceipt");
 
-// Header DTO
+// Versi ringkas buat list: header GR saja, tanpa item dan tanpa status PO.
 export const goodsReceiptSummarySchema = goodsReceiptSchema
   .omit({ items: true, purchaseOrder: true })
   .openapi("GoodsReceiptSummary");

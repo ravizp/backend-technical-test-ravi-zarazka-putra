@@ -9,7 +9,7 @@ export const goodsReceiptRoutes = createRouter<AuthEnv>();
 const TAG = ["Goods Receipts"];
 const bearer = { security: [{ bearerAuth: [] }] };
 
-// POST /api/goods-receipts — record a receipt (atomic: PO status + inventory + movement)
+// POST /api/goods-receipts — catat penerimaan barang. Satu transaksi: status PO + saldo stok + movement.
 goodsReceiptRoutes.openapi(
   createRoute({
     method: "post",

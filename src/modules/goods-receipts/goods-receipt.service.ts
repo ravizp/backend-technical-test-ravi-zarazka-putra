@@ -15,7 +15,7 @@ import type { PurchaseOrderStatus } from "../../lib/types.js";
 import type { CreateGoodsReceiptInput } from "./goods-receipt.schema.js";
 import { getGoodsReceiptById } from "./goods-receipt.serialize.js";
 
-// Read side re-exported so routes only import from the service.
+// Sisi baca di-re-export dari sini biar routes cukup import dari service saja.
 export {
   getGoodsReceiptById,
   listGoodsReceiptsForPurchaseOrder,
@@ -24,7 +24,10 @@ export {
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Requested = Map<string, number>;
 
-// Validation helpers
+// --- helper validasi ---
+
+// Status PO ditentukan dari kondisi semua item-nya: semua terpenuhi -> RECEIVED,
+// ada yang sudah masuk sebagian -> PARTIALLY_RECEIVED, belum ada sama sekali -> ORDERED.
 function computePoStatus(
   items: { orderedQuantity: number; receivedQuantity: number }[],
 ): PurchaseOrderStatus {
@@ -32,7 +35,7 @@ function computePoStatus(
   return items.some((i) => i.receivedQuantity > 0) ? "PARTIALLY_RECEIVED" : "ORDERED";
 }
 
-// Merge duplicate requested
+// Gabungkan baris yang menunjuk PO item sama — quantity-nya dijumlahkan.
 function mergeLines(items: CreateGoodsReceiptInput["items"]): Requested {
   const merged: Requested = new Map();
   for (const it of items) {
@@ -46,7 +49,7 @@ function mergeLines(items: CreateGoodsReceiptInput["items"]): Requested {
 
 const RECEIVABLE_STATUSES: PurchaseOrderStatus[] = ["ORDERED", "PARTIALLY_RECEIVED"];
 
-// Load Receivable PO
+// Ambil PO yang memang boleh menerima barang (status ORDERED atau PARTIALLY_RECEIVED).
 async function loadReceivablePo(purchaseOrderId: string) {
   const [po] = await db
     .select({
@@ -67,7 +70,8 @@ async function loadReceivablePo(purchaseOrderId: string) {
   return po;
 }
 
-// Pre-check quantities
+// Cek awal di luar transaksi biar bisa nolak cepat: item harus milik PO ini, dan total
+// terima tidak boleh lewat dari yang dipesan. Nanti dicek ulang lagi di dalam transaksi.
 async function preCheckQuantities(poId: string, requested: Requested): Promise<void> {
   const rows = await db
     .select({
@@ -97,7 +101,8 @@ async function preCheckQuantities(poId: string, requested: Requested): Promise<v
   }
 }
 
-// Lock the PO and its items, then revalidate the requested quantities
+// Kunci baris PO + item-nya (FOR UPDATE), lalu cek ulang quantity terhadap angka terkini.
+// Ini yang mencegah dua Goods Receipt paralel sama-sama lolos dan bikin over-receive.
 async function lockAndRevalidate(tx: Tx, poId: string, requested: Requested) {
   await tx
     .select({ id: purchaseOrders.id })
@@ -128,7 +133,7 @@ async function lockAndRevalidate(tx: Tx, poId: string, requested: Requested) {
   return byId;
 }
 
-//Step 1: insert the GR header + its item rows.
+// Langkah 1: insert header GR + baris item-nya.
 async function insertGoodsReceipt(
   tx: Tx,
   poId: string,
@@ -153,7 +158,7 @@ async function insertGoodsReceipt(
   return gr;
 }
 
-// Step 2: add the received amounts onto each PO item.
+// Langkah 2: tambahkan jumlah yang diterima ke received_quantity tiap item PO.
 async function bumpReceivedQuantities(tx: Tx, requested: Requested): Promise<void> {
   try {
     for (const [poItemId, qty] of requested) {
@@ -166,7 +171,7 @@ async function bumpReceivedQuantities(tx: Tx, requested: Requested): Promise<voi
         .where(eq(purchaseOrderItems.id, poItemId));
     }
   } catch (err) {
-    // Last line of defence: the DB CHECK (received_quantity <= ordered_quantity).
+    // Jaring pengaman terakhir: CHECK di DB (received_quantity <= ordered_quantity).
     if (isCheckViolation(err, "purchase_order_items_received_lte_ordered_check")) {
       throw AppError.unprocessable(
         "Receiving would exceed the ordered quantity",
@@ -177,7 +182,7 @@ async function bumpReceivedQuantities(tx: Tx, requested: Requested): Promise<voi
   }
 }
 
-// Step 3: recompute the PO's status from its items.
+// Langkah 3: hitung ulang status PO dari kondisi item-nya.
 async function syncPurchaseOrderStatus(tx: Tx, poId: string): Promise<void> {
   const items = await tx
     .select({

@@ -12,7 +12,7 @@ import type { PurchaseOrderStatus } from "../../lib/types.js";
 
 export type GrRow = typeof goodsReceipts.$inferSelect;
 
-//serialisation
+// serialisasi: query + bentuk DTO untuk sisi baca Goods Receipt
 export async function itemsWithProduct(goodsReceiptId: string) {
   return db
     .select({
@@ -30,7 +30,7 @@ export async function itemsWithProduct(goodsReceiptId: string) {
     .orderBy(goodsReceiptItems.createdAt);
 }
 
-// Header DTO
+// Bagian header GR saja.
 export function headerDto(gr: GrRow) {
   return {
     id: gr.id,
@@ -48,7 +48,7 @@ export async function loadRow(id: string): Promise<GrRow> {
   return row;
 }
 
-// Get a GR by ID
+// Ambil satu GR lengkap: header + item + status PO-nya saat ini.
 export async function getGoodsReceiptById(id: string) {
   const gr = await loadRow(id);
   const [po] = await db
@@ -63,7 +63,7 @@ export async function getGoodsReceiptById(id: string) {
   };
 }
 
-// List all GRs for a given PO
+// Semua GR milik satu PO, urut dari yang paling lama.
 export async function listGoodsReceiptsForPurchaseOrder(purchaseOrderId: string) {
   const rows = await db
     .select()
