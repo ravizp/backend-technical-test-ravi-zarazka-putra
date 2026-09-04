@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [development, main]
+  pull_request:
+
+# Batalkan run lama untuk ref yang sama begitu ada push baru.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    # Test bersifat integration dan butuh PostgreSQL sungguhan.
+    # global-setup.ts akan CREATE DATABASE "inventory_procurement_test" sendiri
+    # lewat maintenance db "postgres", jadi service ini cukup pakai default.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # setup-env.ts memaksa PG_DATABASE ke DB test; sisanya pakai "||=" jadi
+      # cukup override PG_PORT (default lokalnya 5433, di CI Postgres di 5432).
+      PG_HOSTNAME: localhost
+      PG_PORT: 5432
+      PG_USERNAME: postgres
+      PG_PASSWORD: postgres
+      JWT_SECRET_KEY: ci-secret-key-not-for-production
+      BCRYPT_ROUNDS: 4
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
