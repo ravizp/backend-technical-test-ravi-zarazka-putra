@@ -114,8 +114,7 @@ describe("Goods Receipt business rules", () => {
     expect(sum).toBe(100);
   });
 
-  // --- Point 7: a fully received Purchase Order becomes RECEIVED ---
-
+  // condition: a fully received Purchase Order becomes RECEIVED
   function getPo(poId: string) {
     return api<{ status: string; items: { receivedQuantity: number }[] }>(
       "GET",
