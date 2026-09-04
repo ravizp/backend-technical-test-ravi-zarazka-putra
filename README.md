@@ -7,6 +7,7 @@ lalu barang diterima lewat **Goods Receipt** yang otomatis menambah stok gudang.
 Dikerjakan sebagai Backend Engineer take-home technical test.
 
 ## Daftar isi
+
 - [Setup Backend Repo](#setup)
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
@@ -348,8 +349,104 @@ curl -s localhost:3001/api/inventory -H "authorization: Bearer $TOKEN" | jq
 
 ## Engineering Decisions
 
-[Engineering Decisions](#engineering-decisions)
+Enam keputusan yang paling berpengaruh ke desain, beserta alasan dan alternatif yang
+tidak dipilih.
+
+### 1. Stok disimpan dua lapis: saldo + ledger append-only
+
+**Keputusan.** `inventories.quantity` menyimpan saldo stok saat ini (satu row per
+pasangan `warehouse_id` + `product_id`), sementara `inventory_movements` mencatat setiap
+perubahan sebagai row baru yang tidak pernah diubah/dihapus. Keduanya ditulis dalam
+transaksi yang sama.
+
+**Alasan.** Endpoint "stock by warehouse / by product" butuh baca cepat tanpa agregasi —
+itu dilayani tabel saldo. Tapi requirement juga minta "inventory movement history", dan
+untuk audit kita perlu tahu _kenapa_ stok berubah (GR mana, kapan, oleh siapa). Ledger
+memberi jejak itu; saldo tetap bisa direkonstruksi dengan `SUM(quantity)` bila perlu.
+
+**Alternatif yang tidak dipilih.** (a) Hanya tabel saldo — hemat, tapi kehilangan
+riwayat. (b) Hanya ledger, saldo selalu `SUM()` on the fly — konsisten tapi lambat dan
+berat saat data movement menumpuk.
+
+### 2. Goods Receipt dijalankan sebagai satu transaksi dengan row lock
+
+**Keputusan.** `createGoodsReceipt` membungkus lima langkah (insert GR + item → tambah
+`received_quantity` PO → hitung ulang status PO → upsert `inventories` → insert
+`inventory_movements`) dalam satu `db.transaction()`. Di awal transaksi, baris
+`purchase_orders` dan `purchase_order_items` terkait dikunci dengan `SELECT ... FOR
+UPDATE`, lalu kuantitas divalidasi ulang setelah lock didapat.
+
+**Alasan.** Tanpa lock, dua Goods Receipt paralel untuk PO yang sama bisa lolos
+pengecekan "total terima ≤ ordered" secara bersamaan lalu sama-sama commit —
+_over-receive_. Lock membuat GR kedua menunggu sampai yang pertama selesai, lalu
+memvalidasi ulang terhadap angka terbaru. Kalau langkah mana pun gagal, seluruhnya
+di-rollback sehingga tidak ada GR tanpa movement atau saldo yang naik tanpa GR.
+
+**Alternatif yang tidak dipilih.** (a) Optimistic locking pakai kolom versi — lebih
+ringan tapi butuh retry logic di aplikasi. (b) Andalkan `CHECK (received_quantity <=
+ordered_quantity)` saja — mencegah data korup tapi memunculkan error DB mentah, bukan
+pesan bisnis yang rapi. `CHECK` tetap dipasang sebagai jaring pengaman terakhir.
+
+### 3. Kolom enum sebagai `text` + `CHECK`, bukan enum native PostgreSQL
+
+**Keputusan.** `status`, `role`, `movement_type` disimpan sebagai `text` dengan
+`CHECK (col IN (...))`.
+
+**Alasan.** Menambah nilai baru (mis. `movement_type` `SALES_ISSUE` atau `ADJUSTMENT`
+nanti) cukup dengan mengganti ekspresi `CHECK` — tidak perlu `ALTER TYPE ... ADD VALUE`
+yang di PostgreSQL punya batasan (tidak bisa jalan di dalam transaksi di versi lama,
+tidak bisa menghapus nilai). Union type di TypeScript
+([`src/lib/types.ts`](src/lib/types.ts)) tetap memberi keamanan tipe di sisi aplikasi.
+
+**Alternatif yang tidak dipilih.** Enum native — lebih ketat di level DB dan sedikit
+lebih hemat storage, tapi evolusinya kaku untuk sistem yang jelas akan tumbuh.
+
+### 4. `error.code` adalah kontrak, dibentuk di satu tempat
+
+**Keputusan.** Semua error dilempar sebagai `AppError` (atau `ZodError` dari validasi
+schema) dan diubah jadi JSON hanya di `onError`
+([`src/middleware/error-handler.ts`](src/middleware/error-handler.ts)). Bentuknya selalu
+`{ error: { code, message, details? } }`. `code` huruf besar + underscore dan stabil;
+`message` bebas berubah.
+
+**Alasan.** Client bisa bercabang berdasarkan `code` tanpa mem-parsing kalimat.
+Menyatukan pembentukan error mencegah tiap handler bikin format sendiri, dan memastikan
+error tak terduga tidak membocorkan detail internal (selalu jadi `500
+INTERNAL_SERVER_ERROR` dengan log di server). Pembagian `409` vs `422` dibuat eksplisit:
+`409` = konflik dengan state sekarang, `422` = bentuk/nilai request melanggar aturan.
+Katalog lengkap: [`docs/error-handling.md`](docs/error-handling.md).
+
+### 5. Nomor dokumen dari tabel sequence sendiri, reset per tahun
+
+**Keputusan.** `PR-2026-000001` / `PO-...` / `GR-...` dihasilkan oleh
+`nextDocumentNumber(tx, type)` yang meng-`UPDATE ... RETURNING last_number + 1` pada tabel
+`document_sequences` (unik per `doc_type` + `year`), di transaksi yang sama dengan insert
+dokumennya.
+
+**Alasan.** Format bernomor urut per tahun adalah kebutuhan umum dokumen procurement dan
+tidak bisa dipenuhi UUID. `COUNT(*) + 1` rawan race dan bocor saat ada baris terhapus.
+Sequence native PostgreSQL tidak gampang di-reset per tahun dan "berlubang" saat
+transaksi rollback. Row lock via `UPDATE ... RETURNING` menjamin dua request bersamaan
+tidak mendapat nomor sama.
+
+**Alternatif yang tidak dipilih.** Sequence native + logika reset terjadwal — lebih
+banyak bagian bergerak untuk keuntungan yang kecil di skala case study ini.
+
+### 6. Satu schema Zod untuk validasi request sekaligus dokumen OpenAPI
+
+**Keputusan.** Tiap module mendefinisikan schema request/response dengan
+`@hono/zod-openapi`. Schema yang sama dipakai `createRoute()` untuk memvalidasi input
+_dan_ diregistrasi sebagai komponen OpenAPI. `docs/openapi.json` di-generate dari sana
+(`npm run docs:openapi`).
+
+**Alasan.** Dokumentasi API yang ditulis terpisah dari kode hampir pasti cepat basi.
+Dengan satu sumber kebenaran, Swagger UI, `openapi.json`, dan perilaku runtime tidak
+mungkin berbeda. `defaultHook` di [`src/openapi.ts`](src/openapi.ts) mengubah kegagalan
+schema jadi `422 VALIDATION_ERROR` yang konsisten dengan error lain.
+
+**Alternatif yang tidak dipilih.** Tulis OpenAPI YAML manual — kontrol penuh atas
+tampilan dokumen, tapi beban pemeliharaan ganda dan risiko drift.
 
 ## Assumptions
 
-[Assumptions](#assumptions)
+_Ditambahkan di Point 3._
