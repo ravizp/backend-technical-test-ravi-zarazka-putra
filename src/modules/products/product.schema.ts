@@ -25,7 +25,9 @@ export const createProductSchema = z
 export const updateProductSchema = createProductSchema.partial().openapi("UpdateProduct");
 
 export const listProductQuerySchema = paginationQuerySchema.extend({
+  // q dicocokkan ke name atau sku di service.
   q: z.string().trim().min(1).optional().openapi({ example: "oil" }),
+  // Query string selalu string, jadi terima "true"/"false" lalu ubah ke boolean.
   isActive: z
     .enum(["true", "false"])
     .transform((v) => v === "true")

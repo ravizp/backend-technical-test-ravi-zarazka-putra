@@ -20,6 +20,7 @@ function toDto(row: ProductRow) {
   };
 }
 
+// Dua error yang sering dipakai di file ini, dibungkus biar tidak nulis ulang terus.
 const SKU_TAKEN = () =>
   AppError.conflict("A product with this SKU already exists", "SKU_ALREADY_EXISTS");
 const NOT_FOUND = () => AppError.notFound("Product not found", "PRODUCT_NOT_FOUND");
@@ -30,6 +31,8 @@ export async function createProduct(input: CreateProductInput) {
     if (!row) throw AppError.internal();
     return toDto(row);
   } catch (err) {
+    // Biarkan DB yang jaga keunikan SKU (ada UNIQUE constraint), lalu terjemahkan
+    // error-nya jadi 409 yang rapi. Lebih aman dari cek-dulu-baru-insert yang bisa race.
     if (isUniqueViolation(err, "products_sku_unique")) throw SKU_TAKEN();
     throw err;
   }
@@ -63,6 +66,7 @@ export async function listProducts(query: ListProductQuery) {
 }
 
 export async function updateProduct(id: string, input: UpdateProductInput) {
+  // PATCH tanpa field apa pun: tidak usah sentuh DB, cukup balikin data yang sekarang.
   if (Object.keys(input).length === 0) return getProductById(id);
   try {
     const [row] = await db
