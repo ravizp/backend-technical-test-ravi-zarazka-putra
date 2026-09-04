@@ -197,7 +197,7 @@ async function syncPurchaseOrderStatus(tx: Tx, poId: string): Promise<void> {
     .where(eq(purchaseOrders.id, poId));
 }
 
-// Steps 4 + 5: per product, add to the warehouse balance and log one movement.
+// Langkah 4 + 5: per product, tambah saldo stok gudang dan catat satu movement.
 async function applyStockReceipt(
   tx: Tx,
   warehouseId: string,
@@ -211,7 +211,7 @@ async function applyStockReceipt(
     if (!line) throw AppError.internal();
     const { productId } = line;
 
-    // Step 4: upsert the (warehouse, product) balance.
+    // Langkah 4: upsert saldo (warehouse, product).
     await tx
       .insert(inventories)
       .values({ warehouseId, productId, quantity: qty })
@@ -220,7 +220,7 @@ async function applyStockReceipt(
         set: { quantity: sql`${inventories.quantity} + ${qty}`, updatedAt: new Date() },
       });
 
-    // Step 5: append one PURCHASE_RECEIPT movement referencing this GR.
+    // Langkah 5: tambah satu movement PURCHASE_RECEIPT yang menunjuk GR ini.
     await tx.insert(inventoryMovements).values({
       warehouseId,
       productId,
@@ -233,7 +233,8 @@ async function applyStockReceipt(
   }
 }
 
-// Create a Goods Receipt
+// Catat satu Goods Receipt. Validasi cepat dulu di luar transaksi, lalu semua perubahan
+// (GR, PO, stok, movement) dijalankan dalam satu transaksi — gagal di tengah = rollback penuh.
 export async function createGoodsReceipt(input: CreateGoodsReceiptInput, receivedBy: string) {
   if (input.items.length === 0) {
     throw AppError.unprocessable(
@@ -249,11 +250,11 @@ export async function createGoodsReceipt(input: CreateGoodsReceiptInput, receive
   const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date();
 
   const grId = await db.transaction(async (tx) => {
-    const lockedById = await lockAndRevalidate(tx, po.id, requested); // 0
-    const gr = await insertGoodsReceipt(tx, po.id, requested, receivedBy, receivedAt); // 1
-    await bumpReceivedQuantities(tx, requested); // 2
-    await syncPurchaseOrderStatus(tx, po.id); // 3
-    await applyStockReceipt(tx, po.warehouseId, lockedById, requested, gr.id, receivedBy); // 4 + 5
+    const lockedById = await lockAndRevalidate(tx, po.id, requested); // kunci + cek ulang
+    const gr = await insertGoodsReceipt(tx, po.id, requested, receivedBy, receivedAt); // langkah 1
+    await bumpReceivedQuantities(tx, requested); // langkah 2
+    await syncPurchaseOrderStatus(tx, po.id); // langkah 3
+    await applyStockReceipt(tx, po.warehouseId, lockedById, requested, gr.id, receivedBy); // langkah 4 + 5
     return gr.id;
   });
 
