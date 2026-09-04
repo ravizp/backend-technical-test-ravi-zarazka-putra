@@ -4,10 +4,11 @@ import { verifyToken } from "../../lib/jwt.js";
 import type { UserRole } from "../../lib/types.js";
 import { findAuthUserById, type AuthUser } from "./auth.service.js";
 
-//Hono context variables set
+// user hasil login ditaruh di context Hono, biar handler tinggal ambil lewat currentUser()
 export type AuthEnv = { Variables: { user: AuthUser } };
 
-// Middleware - authenticate
+// Baca header Authorization, verifikasi JWT-nya, lalu muat user-nya ke context.
+// Kalau ada yang tidak beres di salah satu langkah, langsung tolak 401.
 export const authenticate: MiddlewareHandler<AuthEnv> = async (c, next) => {
   const header = c.req.header("Authorization") ?? "";
   if (!header.toLowerCase().startsWith("bearer ")) {
@@ -31,12 +32,12 @@ export const authenticate: MiddlewareHandler<AuthEnv> = async (c, next) => {
   await next();
 };
 
-// Type guard for currentUser
+// Ambil user yang sedang login. Baru aman dipakai setelah authenticate jalan.
 export function currentUser(c: Context<AuthEnv>): AuthUser {
   return c.get("user");
 }
 
-// Middleware - requireRole
+// Batasi akses ke role tertentu. Selalu dipasang sesudah authenticate.
 export function requireRole(...allowed: UserRole[]): MiddlewareHandler<AuthEnv> {
   return async (c, next) => {
     const user = c.get("user");
@@ -50,7 +51,8 @@ export function requireRole(...allowed: UserRole[]): MiddlewareHandler<AuthEnv> 
   };
 }
 
-// Middleware - protect
+// Yang dipakai di route. protect() = cukup wajib login;
+// protect("APPROVER") = wajib login sekaligus role-nya harus cocok.
 export function protect(...allowed: UserRole[]): MiddlewareHandler<AuthEnv>[] {
   return allowed.length > 0 ? [authenticate, requireRole(...allowed)] : [authenticate];
 }
