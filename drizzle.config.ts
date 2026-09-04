@@ -1,8 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 
-// drizzle-kit is a standalone CLI: it only needs DB credentials, so it reads
-// the PG_* vars directly instead of loading the full app env (which also
-// validates JWT config that migrations don't care about).
+// drizzle-kit is a standalone CLI
 try {
   process.loadEnvFile();
 } catch {
