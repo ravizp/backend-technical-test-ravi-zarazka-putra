@@ -17,7 +17,6 @@ import type { CreatePurchaseOrderInput, ListPurchaseOrderQuery } from "./purchas
 type PoRow = typeof purchaseOrders.$inferSelect;
 
 //serialisasi
-
 function headerDto(po: PoRow) {
   return {
     id: po.id,

@@ -3,7 +3,6 @@ import { PURCHASE_ORDER_STATUSES } from "../../lib/types.js";
 import { paginatedResponseSchema, paginationQuerySchema } from "../../lib/pagination.js";
 
 //body request
-
 export const createPurchaseOrderSchema = z
   .object({
     purchaseRequestId: z.uuid(),
@@ -12,7 +11,6 @@ export const createPurchaseOrderSchema = z
   .openapi("CreatePurchaseOrder");
 
 //bentuk response
-
 export const purchaseOrderItemSchema = z
   .object({
     id: z.uuid(),
