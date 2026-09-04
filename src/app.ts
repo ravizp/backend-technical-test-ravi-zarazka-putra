@@ -11,6 +11,12 @@ import { purchaseOrderRoutes } from "./modules/purchase-orders/purchase-order.ro
 import { purchaseRequestRoutes } from "./modules/purchase-requests/purchase-request.routes.js";
 import { warehouseRoutes } from "./modules/warehouses/warehouse.routes.js";
 
+// docs:openapi script that writes docs/openapi.json.
+export const openApiDocumentConfig = {
+  openapi: "3.0.0",
+  info: { title: "Inventory Procurement API", version: "1.0.0" },
+} as const;
+
 // Create the main app with all routes and middleware
 export function createApp(): OpenAPIHono {
   const app = new OpenAPIHono();
@@ -41,10 +47,7 @@ export function createApp(): OpenAPIHono {
     scheme: "bearer",
     bearerFormat: "JWT",
   });
-  app.doc("/openapi.json", {
-    openapi: "3.0.0",
-    info: { title: "Inventory Procurement API", version: "1.0.0" },
-  });
+  app.doc("/openapi.json", openApiDocumentConfig);
   app.get("/docs", swaggerUI({ url: "/openapi.json" }));
 
   app.notFound(notFound);
