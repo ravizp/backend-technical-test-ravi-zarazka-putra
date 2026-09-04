@@ -33,8 +33,7 @@ describe("Purchase Order business rules", () => {
     });
   }
 
-  // --- Point 3: a PO can only be created from an APPROVED PR ---
-
+  // condition reject: a PO can only be created from an APPROVED PR
   it("rejects creating a Purchase Order from a DRAFT Purchase Request", async () => {
     const prId = await draftPr();
 
@@ -74,8 +73,7 @@ describe("Purchase Order business rules", () => {
     expect(res.body.items[0]?.receivedQuantity).toBe(0);
   });
 
-  // --- Point 4: at most one Purchase Order per Purchase Request ---
-
+  // condition reject: at most one Purchase Order per Purchase Request
   it("rejects creating a second Purchase Order from the same Purchase Request", async () => {
     const prId = await approvedPr();
 

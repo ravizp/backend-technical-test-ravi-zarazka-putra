@@ -10,7 +10,7 @@ describe("Purchase Request business rules", () => {
     f = await seedBasics();
   });
 
-  /** Create a DRAFT PR with one item and return its id. */
+  // Create a DRAFT PR with one item and return its id.
   async function draftPr() {
     const res = await api<{ id: string }>("POST", "/api/purchase-requests", {
       token: f.userToken,
@@ -19,14 +19,14 @@ describe("Purchase Request business rules", () => {
     return res.body.id;
   }
 
-  /** Create a PR, submit it — returns a SUBMITTED PR id. */
+  // Create a PR, submit it — returns a SUBMITTED PR id.
   async function submittedPr() {
     const id = await draftPr();
     await api("POST", `/api/purchase-requests/${id}/submit`, { token: f.userToken });
     return id;
   }
 
-  //Point 1: cannot submit a PR without items
+  // condition: cannot submit a PR without items
   it("rejects submitting a Purchase Request that has no items", async () => {
     const created = await api<{ id: string }>("POST", "/api/purchase-requests", {
       token: f.userToken,
@@ -56,8 +56,7 @@ describe("Purchase Request business rules", () => {
     expect(res.body.status).toBe("SUBMITTED");
   });
 
-  // --- Point 2: can only approve a SUBMITTED PR ---
-
+  // condition: can only approve a SUBMITTED PR
   it("rejects approving a Purchase Request that is still DRAFT", async () => {
     const id = await draftPr();
 
