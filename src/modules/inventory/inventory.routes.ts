@@ -9,7 +9,8 @@ import {
 } from "./inventory.schema.js";
 import { getStock, listMovements } from "./inventory.service.js";
 
-// Inventory routes for stock balances and movement ledger
+// Endpoint baca-saja: saldo stok dan ledger pergerakannya. Stok cuma berubah lewat
+// proses lain (Goods Receipt), jadi di sini tidak ada POST/PATCH.
 export const inventoryRoutes = createRouter();
 
 const TAG = ["Inventory"];

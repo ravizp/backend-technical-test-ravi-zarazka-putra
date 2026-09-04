@@ -4,7 +4,8 @@ import { inventories, inventoryMovements, products, warehouses } from "../../db/
 import { limitOffset, paginated } from "../../lib/pagination.js";
 import type { MovementQuery, StockQuery } from "./inventory.schema.js";
 
-// Inventory stock levels, filterable by warehouse and/or product.
+// Saldo stok. Tanpa filter = semua; kasih warehouseId dan/atau productId untuk mempersempit.
+// Diurutkan by code warehouse lalu sku product biar rapi dibaca.
 export async function getStock(query: StockQuery) {
   const filters = [];
   if (query.warehouseId) filters.push(eq(inventories.warehouseId, query.warehouseId));
@@ -31,7 +32,8 @@ export async function getStock(query: StockQuery) {
   return { data: rows.map((r) => ({ ...r, updatedAt: r.updatedAt.toISOString() })) };
 }
 
-// Inventory movements, filterable by warehouse, product, and/or reference ID.
+// Ledger pergerakan stok, terbaru dulu. Bisa difilter by warehouse, product,
+// atau referenceId (buat menelusuri semua movement dari satu dokumen).
 export async function listMovements(query: MovementQuery) {
   const filters = [];
   if (query.warehouseId) filters.push(eq(inventoryMovements.warehouseId, query.warehouseId));
@@ -69,7 +71,8 @@ export async function listMovements(query: MovementQuery) {
 
   const data = rows.map((r) => ({
     ...r,
-    // Resolved from the source document once Goods Receipt exists (Phase 7).
+    // TODO: ambil nomor dokumen asal (mis. "GR-2026-000001") berdasarkan referenceId.
+    // Untuk sekarang selalu null — referenceType + referenceId sudah cukup buat menelusuri.
     referenceNumber: null as string | null,
     createdAt: r.createdAt.toISOString(),
   }));

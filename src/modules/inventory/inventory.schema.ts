@@ -2,7 +2,8 @@ import { z } from "@hono/zod-openapi";
 import { MOVEMENT_REFERENCE_TYPES, MOVEMENT_TYPES } from "../../lib/types.js";
 import { paginatedResponseSchema, paginationQuerySchema } from "../../lib/pagination.js";
 
-// Inventory stock schema
+// Saldo stok: satu baris per pasangan warehouse + product, sudah di-join biar
+// code/nama warehouse dan sku/nama product ikut terbawa.
 export const inventoryStockSchema = z
   .object({
     warehouseId: z.uuid(),
@@ -25,7 +26,8 @@ export const stockQuerySchema = z.object({
   productId: z.uuid().optional(),
 });
 
-// Inventory movement shcema
+// Satu baris ledger: catatan tiap kali stok berubah, lengkap dengan dokumen asalnya
+// (referenceType + referenceId, mis. GOODS_RECEIPT).
 export const movementSchema = z
   .object({
     id: z.uuid(),
