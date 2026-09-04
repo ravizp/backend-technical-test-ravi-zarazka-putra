@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { PURCHASE_ORDER_STATUSES } from "../../lib/types.js";
 import { paginatedResponseSchema, paginationQuerySchema } from "../../lib/pagination.js";
 
-// ---- request ----
+//body request
 
 export const createPurchaseOrderSchema = z
   .object({
@@ -11,7 +11,7 @@ export const createPurchaseOrderSchema = z
   })
   .openapi("CreatePurchaseOrder");
 
-// ---- responses ----
+//bentuk response
 
 export const purchaseOrderItemSchema = z
   .object({

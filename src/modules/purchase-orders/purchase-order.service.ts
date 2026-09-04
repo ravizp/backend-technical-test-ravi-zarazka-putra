@@ -16,7 +16,7 @@ import type { CreatePurchaseOrderInput, ListPurchaseOrderQuery } from "./purchas
 
 type PoRow = typeof purchaseOrders.$inferSelect;
 
-// ---- serialisation ----
+//serialisasi
 
 function headerDto(po: PoRow) {
   return {
@@ -59,7 +59,7 @@ export async function getPurchaseOrderById(id: string) {
   return { ...headerDto(row), items: await itemsWithProduct(id) };
 }
 
-// list purchase orders, filterable by status, supplier, and/or warehouse
+// List PO. Bisa difilter by status, supplier, dan/atau warehouse.
 export async function listPurchaseOrders(query: ListPurchaseOrderQuery) {
   const filters = [];
   if (query.status) filters.push(eq(purchaseOrders.status, query.status));
@@ -91,7 +91,8 @@ export async function listPurchaseOrders(query: ListPurchaseOrderQuery) {
   return paginated(data, totalRow?.value ?? 0, query);
 }
 
-// create: from an APPROVED PR
+// Buat PO dari PR yang sudah APPROVED. Product + quantity + warehouse disalin dari PR,
+// supplier ditentukan di request ini. PO baru selalu mulai dari DRAFT.
 export async function createPurchaseOrder(input: CreatePurchaseOrderInput, createdBy: string) {
   const [pr] = await db
     .select({ status: purchaseRequests.status, warehouseId: purchaseRequests.warehouseId })
@@ -108,7 +109,8 @@ export async function createPurchaseOrder(input: CreatePurchaseOrderInput, creat
     );
   }
 
-  // App-level check for a friendly message; the UNIQUE constraint is the real guard.
+  // Cek di aplikasi ini cuma biar pesan error-nya enak dibaca. Yang benar-benar
+  // mencegah PO dobel dari satu PR adalah UNIQUE constraint di DB (lihat catch di bawah).
   const [existingPo] = await db
     .select({ id: purchaseOrders.id })
     .from(purchaseOrders)
@@ -179,8 +181,7 @@ export async function createPurchaseOrder(input: CreatePurchaseOrderInput, creat
   return getPurchaseOrderById(id);
 }
 
-// ---- mark as ordered: DRAFT -> ORDERED ----
-
+// mark as ordered: DRAFT -> ORDERED
 export async function markPurchaseOrderAsOrdered(id: string) {
   const po = await loadRow(id);
   if (po.status !== "DRAFT") {
