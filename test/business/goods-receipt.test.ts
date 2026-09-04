@@ -66,4 +66,51 @@ describe("Goods Receipt business rules", () => {
     expect(res.status).toBe(201);
     expect(res.body.purchaseOrder.status).toBe("PARTIALLY_RECEIVED");
   });
+
+  // condition: a Goods Receipt raises the warehouse stock balance
+  function stockOf(productId: string) {
+    return api<{ data: { quantity: number }[] }>(
+      "GET",
+      `/api/inventory?warehouseId=${f.warehouse.id}&productId=${productId}`,
+      { token: f.userToken },
+    );
+  }
+
+  it("adds the received quantity to the warehouse stock balance", async () => {
+    const { poId, poItemId } = await orderedPo(100);
+
+    const before = await stockOf(f.productA.id);
+    expect(before.body.data).toHaveLength(0); // no stock before the receipt
+
+    expect((await receive(poId, poItemId, 60)).status).toBe(201);
+    const afterFirst = await stockOf(f.productA.id);
+    expect(afterFirst.body.data[0]?.quantity).toBe(60);
+
+    expect((await receive(poId, poItemId, 40)).status).toBe(201);
+    const afterSecond = await stockOf(f.productA.id);
+    expect(afterSecond.body.data[0]?.quantity).toBe(100); // 60 + 40, accumulated
+  });
+
+  it("logs one PURCHASE_RECEIPT movement for each receipt", async () => {
+    const { poId, poItemId } = await orderedPo(100);
+    await receive(poId, poItemId, 60);
+    await receive(poId, poItemId, 40);
+
+    const res = await api<{
+      total: number;
+      data: { movementType: string; referenceType: string; quantity: number }[];
+    }>("GET", `/api/inventory-movements?warehouseId=${f.warehouse.id}&productId=${f.productA.id}`, {
+      token: f.userToken,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(2);
+    for (const m of res.body.data) {
+      expect(m.movementType).toBe("PURCHASE_RECEIPT");
+      expect(m.referenceType).toBe("GOODS_RECEIPT");
+      expect(m.quantity).toBeGreaterThan(0);
+    }
+    const sum = res.body.data.reduce((acc, m) => acc + m.quantity, 0);
+    expect(sum).toBe(100);
+  });
 });
