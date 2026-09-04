@@ -449,4 +449,51 @@ tampilan dokumen, tapi beban pemeliharaan ganda dan risiko drift.
 
 ## Assumptions
 
-_Ditambahkan di Point 3._
+Requirement tidak mengatur semua kondisi secara eksplisit. Daftar lengkap asumsi —
+dikumpulkan sejak fase desain dan ditambah saat development — ada di
+[`ASSUMPTIONS.md`](ASSUMPTIONS.md). Ringkasan yang paling berdampak:
+
+**Autentikasi & peran**
+
+- JWT stateless, tanpa refresh token / registrasi / lupa password. User dibuat hanya
+  lewat seeder. Satu user tepat satu role (`USER` atau `APPROVER`, eksklusif).
+- `APPROVER` khusus approve/reject PR. Semua aksi lain (master data, PR, PO, mark as
+  ordered, cancel, Goods Receipt) dilakukan `USER`.
+- `USER` hanya melihat PR miliknya; PR milik orang lain dibalas `404` agar tidak bocor.
+  `APPROVER` melihat semua PR di semua status. PO / GR / Inventory / master data boleh
+  dibaca user terautentikasi mana pun.
+- Edit & submit PR hanya oleh pemiliknya. CRUD master data boleh siapa pun yang login
+  (tidak ada role admin di requirement).
+
+**Master data**
+
+- Entity non-aktif (`is_active = false`) hanya diblokir di transaksi **baru**; referensi
+  lama tetap sah. Tidak ada hard delete — non-aktifkan saja (`ON DELETE RESTRICT`).
+- Tidak ada kolom harga / pajak / mata uang (di luar scope).
+
+**Purchase Request / Order**
+
+- 1 PR = 1 warehouse, banyak product; satu product maksimal sekali per PR (ditolak, bukan
+  digabung). Semua quantity **integer** (`> 0`), tidak menerima desimal.
+- PR `REJECTED` tidak bisa di-resubmit — buat PR baru. Setelah `SUBMITTED`, PR terkunci.
+- PO hanya dari PR `APPROVED`, maksimal 1 PO per PR. Item PO (product + `ordered_quantity`)
+  dan `warehouse_id` disalin dari PR; `supplier_id` dari request. PO mulai `DRAFT`, ada
+  langkah "Mark as Ordered" terpisah.
+- Cancel PO hanya sebelum ada penerimaan (`DRAFT` / `ORDERED`). Status
+  `PARTIALLY_RECEIVED` / `RECEIVED` dihitung ulang, tidak di-set manual.
+
+**Goods Receipt & inventory**
+
+- Item GR menunjuk `purchase_order_item_id` (bukan product bebas). `received_quantity`
+  kumulatif per baris PO tidak boleh melewati `ordered_quantity`.
+- `receivedAt` dikirim client (boleh mundur); default waktu server bila kosong.
+- Untuk case study ini `movement_type` hanya `PURCHASE_RECEIPT`, `quantity` selalu positif.
+
+**Umum & tooling**
+
+- Timestamp UTC (`timestamptz`). JSON `camelCase`, kolom DB `snake_case`.
+  `PATCH` = update parsial. Paginasi: `page` dari 1, `pageSize` default 20, maks 100.
+- PostgreSQL lokal via Docker di host port **5433** (5432 sering dipakai PG native).
+- Test integration memakai DB terpisah `inventory_procurement_test` yang dibuat &
+  dimigrasi otomatis; `PG_DATABASE` dipaksa ke DB test sehingga DB dev tidak pernah
+  tersentuh.

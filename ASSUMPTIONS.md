@@ -125,3 +125,30 @@ Referensi detail: [`docs/database-design.md`](docs/database-design.md),
    adalah `error.code`.
 6. Schema dibangun ulang sepenuhnya lewat migration Drizzle — tidak ada langkah SQL
    manual.
+
+## 9. Lingkungan pengembangan & tooling
+
+_Asumsi yang muncul selama development (Phase 2–8), bukan bagian dari desain awal._
+
+1. PostgreSQL lokal dijalankan lewat Docker Compose dan di-expose di host port **5433**,
+   bukan `5432` — port default sering sudah dipakai instalasi PostgreSQL native di mesin
+   pengembang. `docker-compose.yml`, `.env.example`, dan `drizzle.config.ts` sudah
+   memakai `5433`.
+2. **Node.js ≥ 22** diasumsikan tersedia. `.env` dibaca lewat `process.loadEnvFile()`
+   bawaan Node, jadi tidak ada dependency `dotenv`.
+3. TypeScript dipatok di `~5.9` (bukan rilis pre-release yang lebih baru) supaya
+   kompatibel dengan peer-dependency `typescript-eslint`.
+4. Migration ditulis **satu file per tabel** (`0000_*` … `0012_*`), bukan satu file
+   besar, agar mudah dibaca dan di-review per tabel.
+5. Seeder **idempoten** (`onConflictDoNothing` pada kolom unik) — aman dijalankan
+   berulang tanpa menggandakan data.
+6. Test bersifat **integration** dan memakai PostgreSQL sungguhan (bukan mock), dengan
+   database terpisah `inventory_procurement_test`:
+   - `test/helpers-testing/global-setup.ts` membuat DB itu bila belum ada, lalu
+     `DROP SCHEMA` + `migrate` sekali di awal run.
+   - `test/helpers-testing/setup-env.ts` **memaksa** `PG_DATABASE` ke DB test, sehingga
+     test tidak mungkin menyentuh database dev walau `.env` mengarah ke sana.
+   - Test dijalankan **serial** (`fileParallelism: false`) karena semua file berbagi
+     satu DB; tiap test memanggil `truncateAll()` + `seedBasics()` supaya deterministik.
+7. `BCRYPT_ROUNDS` diturunkan ke `4` saat test demi kecepatan; default `10` untuk
+   dev/produksi.
