@@ -24,6 +24,7 @@ function toDto(row: WarehouseRow) {
   };
 }
 
+// Dua error yang sering dipakai di file ini, dibungkus biar tidak nulis ulang terus.
 const CODE_TAKEN = () =>
   AppError.conflict("A warehouse with this code already exists", "WAREHOUSE_CODE_ALREADY_EXISTS");
 const NOT_FOUND = () => AppError.notFound("Warehouse not found", "WAREHOUSE_NOT_FOUND");
@@ -34,6 +35,8 @@ export async function createWarehouse(input: CreateWarehouseInput) {
     if (!row) throw AppError.internal();
     return toDto(row);
   } catch (err) {
+    // Biarkan DB yang jaga keunikan code (ada UNIQUE constraint), lalu terjemahkan
+    // error-nya jadi 409 yang rapi. Lebih aman dari cek-dulu-baru-insert yang bisa race.
     if (isUniqueViolation(err, "warehouses_code_unique")) throw CODE_TAKEN();
     throw err;
   }
@@ -73,6 +76,7 @@ export async function listWarehouses(query: ListWarehouseQuery) {
 }
 
 export async function updateWarehouse(id: string, input: UpdateWarehouseInput) {
+  // PATCH tanpa field apa pun: tidak usah sentuh DB, cukup balikin data yang sekarang.
   if (Object.keys(input).length === 0) return getWarehouseById(id);
   try {
     const [row] = await db

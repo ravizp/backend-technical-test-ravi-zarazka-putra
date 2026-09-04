@@ -25,7 +25,9 @@ export const createWarehouseSchema = z
 export const updateWarehouseSchema = createWarehouseSchema.partial().openapi("UpdateWarehouse");
 
 export const listWarehouseQuerySchema = paginationQuerySchema.extend({
+  // q dicocokkan ke name, code, atau location di service.
   q: z.string().trim().min(1).optional().openapi({ example: "jakarta" }),
+  // Query string selalu string, jadi terima "true"/"false" lalu ubah ke boolean.
   isActive: z
     .enum(["true", "false"])
     .transform((v) => v === "true")

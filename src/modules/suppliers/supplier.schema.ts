@@ -25,7 +25,9 @@ export const createSupplierSchema = z
 export const updateSupplierSchema = createSupplierSchema.partial().openapi("UpdateSupplier");
 
 export const listSupplierQuerySchema = paginationQuerySchema.extend({
+  // q dicocokkan ke name atau email di service.
   q: z.string().trim().min(1).optional().openapi({ example: "mitra" }),
+  // Query string selalu string, jadi terima "true"/"false" lalu ubah ke boolean.
   isActive: z
     .enum(["true", "false"])
     .transform((v) => v === "true")

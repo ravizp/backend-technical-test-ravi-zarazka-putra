@@ -23,6 +23,7 @@ function toDto(row: SupplierRow) {
   };
 }
 
+// Dipakai di beberapa fungsi, dibungkus biar tidak nulis ulang terus.
 const NOT_FOUND = () => AppError.notFound("Supplier not found", "SUPPLIER_NOT_FOUND");
 
 export async function createSupplier(input: CreateSupplierInput) {
@@ -59,6 +60,7 @@ export async function listSuppliers(query: ListSupplierQuery) {
 }
 
 export async function updateSupplier(id: string, input: UpdateSupplierInput) {
+  // PATCH tanpa field apa pun: tidak usah sentuh DB, cukup balikin data yang sekarang.
   if (Object.keys(input).length === 0) return getSupplierById(id);
   const [row] = await db
     .update(suppliers)
