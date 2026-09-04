@@ -2,7 +2,7 @@ import { z } from "@hono/zod-openapi";
 import { PURCHASE_REQUEST_STATUSES } from "../../lib/types.js";
 import { paginatedResponseSchema, paginationQuerySchema } from "../../lib/pagination.js";
 
-// request bodies
+//body request
 export const prItemInputSchema = z.object({
   productId: z.uuid(),
   quantity: z.number().int().positive().openapi({ example: 100 }),
@@ -38,7 +38,7 @@ export const rejectPurchaseRequestSchema = z
   })
   .openapi("RejectPurchaseRequest");
 
-//responses purchase request and items
+//bentuk response: PR beserta item nya
 export const purchaseRequestItemSchema = z
   .object({
     id: z.uuid(),

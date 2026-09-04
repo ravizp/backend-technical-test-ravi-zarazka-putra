@@ -12,7 +12,7 @@ interface ErrorBody {
   };
 }
 
-/** Map a bare HTTP status to a stable error code from the catalogue. */
+// Map a bare HTTP status to a stable error code from the catalogue
 const STATUS_CODE: Record<number, string> = {
   400: "BAD_REQUEST",
   401: "UNAUTHORIZED",
@@ -37,10 +37,7 @@ function send(
   return c.json(body, status as ContentfulStatusCode);
 }
 
-/**
- * Single exit point for every error. Guarantees the response body is always
- * `{ error: { code, message, details? } }` (see docs/error-handling.md).
- */
+// Error handler middleware for Hono. Converts thrown errors into JSON responses
 export function onError(err: Error, c: Context): Response {
   if (err instanceof AppError) {
     return send(c, err.status, err.code, err.message, err.details);
@@ -50,7 +47,7 @@ export function onError(err: Error, c: Context): Response {
     return send(c, 422, "VALIDATION_ERROR", "Request validation failed", err.issues);
   }
 
-  // Thrown by Hono internals — e.g. `c.req.json()` on a malformed body (400).
+  // Thrown by Hono internals — e.g. `c.req.json()` on a malformed body (400)
   if (err instanceof HTTPException) {
     return send(c, err.status, STATUS_CODE[err.status] ?? "HTTP_ERROR", err.message);
   }
@@ -59,7 +56,7 @@ export function onError(err: Error, c: Context): Response {
   return send(c, 500, "INTERNAL_SERVER_ERROR", "Something went wrong");
 }
 
-/** Response for routes that don't exist. */
+// 404 handler middleware for Hono. Converts unmatched routes into JSON responses
 export function notFound(c: Context): Response {
   return send(c, 404, "ROUTE_NOT_FOUND", `No route for ${c.req.method} ${c.req.path}`);
 }

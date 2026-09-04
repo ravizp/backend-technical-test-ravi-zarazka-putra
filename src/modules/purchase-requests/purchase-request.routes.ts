@@ -81,7 +81,8 @@ purchaseRequestRoutes.openapi(
   async (c) => c.json(await getPurchaseRequestForViewer(c.req.valid("param").id, currentUser(c)), 200),
 );
 
-// draft editing: owner + DRAFT only
+// Kumpulan respons yang sama untuk semua endpoint ubah item PR:
+// cuma pemilik yang boleh, dan cuma selama PR masih DRAFT.
 const draftEditResponses = {
   200: jsonResponse(purchaseRequestSchema, "Updated Purchase Request"),
   403: errorResponse("Not the owner of this Purchase Request"),
@@ -182,7 +183,7 @@ purchaseRequestRoutes.openapi(
   },
 );
 
-// ---- submit: DRAFT -> SUBMITTED ----
+// submit: DRAFT -> SUBMITTED
 
 purchaseRequestRoutes.openapi(
   createRoute({
@@ -204,7 +205,7 @@ purchaseRequestRoutes.openapi(
   async (c) => c.json(await submitPurchaseRequest(c.req.valid("param").id, currentUser(c).id), 200),
 );
 
-//approval: APPROVER only, SUBMITTED only
+// approve & reject: hanya APPROVER, dan hanya untuk PR yang statusnya SUBMITTED
 purchaseRequestRoutes.openapi(
   createRoute({
     method: "post",

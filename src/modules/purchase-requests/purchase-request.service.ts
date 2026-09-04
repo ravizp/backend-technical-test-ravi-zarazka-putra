@@ -21,7 +21,7 @@ import type {
 type PrRow = typeof purchaseRequests.$inferSelect;
 type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-// shared validation
+// Validasi yang dipakai bareng oleh create, ganti warehouse, dan submit.
 async function assertWarehouseUsable(warehouseId: string): Promise<void> {
   const [w] = await db
     .select({ isActive: warehouses.isActive })
@@ -63,7 +63,7 @@ function assertNoDuplicateProducts(items: { productId: string }[]): void {
   }
 }
 
-//serialisation
+// serialisasi: menggabungkan header PR dengan daftar item nya jadi bentuk response
 async function itemsWithProduct(purchaseRequestId: string) {
   const rows = await db
     .select({
@@ -80,7 +80,7 @@ async function itemsWithProduct(purchaseRequestId: string) {
   return rows;
 }
 
-// Header DTO
+// Bagian header PR saja, tanpa item.
 function headerDto(pr: PrRow) {
   return {
     id: pr.id,
@@ -107,13 +107,14 @@ async function loadRow(id: string): Promise<PrRow> {
   return row;
 }
 
-// Get a purchase request by ID (unscoped)
+// Ambil PR by id apa adanya, tanpa cek kepemilikan. Dipakai internal sesudah aksi tulis.
 export async function getPurchaseRequestById(id: string) {
   const row = await loadRow(id);
   return serialize(row, await itemsWithProduct(id));
 }
 
-// Scoped for the viewer
+// Versi yang lihat siapa yang minta: USER cuma boleh PR miliknya sendiri,
+// PR orang lain sengaja dibalas 404 biar keberadaannya tidak bocor.
 export async function getPurchaseRequestForViewer(id: string, viewer: AuthUser) {
   const row = await loadRow(id);
   if (viewer.role === "USER" && row.requestedBy !== viewer.id) {
@@ -122,7 +123,7 @@ export async function getPurchaseRequestForViewer(id: string, viewer: AuthUser) 
   return serialize(row, await itemsWithProduct(id));
 }
 
-// List purchase requests (USER sees own, APPROVER sees all)
+// List PR. USER otomatis dipersempit ke miliknya; APPROVER lihat semua.
 export async function listPurchaseRequests(query: ListPurchaseRequestQuery, viewer: AuthUser) {
   const filters = [];
   if (viewer.role === "USER") filters.push(eq(purchaseRequests.requestedBy, viewer.id));
@@ -154,7 +155,7 @@ export async function listPurchaseRequests(query: ListPurchaseRequestQuery, view
   return paginated(data, totalRow?.value ?? 0, query);
 }
 
-//create purchase request
+// Buat PR baru, selalu mulai dari DRAFT. items boleh langsung diisi atau ditambah belakangan.
 export async function createPurchaseRequest(input: CreatePurchaseRequestInput, requestedBy: string) {
   const items = input.items ?? [];
   assertNoDuplicateProducts(items);
@@ -184,7 +185,7 @@ export async function createPurchaseRequest(input: CreatePurchaseRequestInput, r
   return getPurchaseRequestById(id);
 }
 
-// Load a Purchase Request
+// Ambil PR yang memang boleh diedit orang ini: harus pemiliknya, dan harus masih DRAFT.
 async function loadEditableDraft(id: string, userId: string): Promise<PrRow> {
   const pr = await loadRow(id);
   if (pr.requestedBy !== userId) {
@@ -199,6 +200,7 @@ async function loadEditableDraft(id: string, userId: string): Promise<PrRow> {
   return pr;
 }
 
+// Cuma perbarui updatedAt PR-nya. Dipanggil sesudah item-nya berubah.
 async function touch(exec: DbOrTx, id: string): Promise<void> {
   await exec
     .update(purchaseRequests)
@@ -310,7 +312,7 @@ export async function submitPurchaseRequest(id: string, userId: string) {
       "PURCHASE_REQUEST_EMPTY",
     );
   }
-  // Re-check: a product may have been deactivated after it was added.
+  // Cek ulang: bisa saja ada product yang dinonaktifkan setelah tadi dimasukkan ke PR.
   await assertProductsUsable(items.map((i) => i.productId));
 
   await db
@@ -321,7 +323,7 @@ export async function submitPurchaseRequest(id: string, userId: string) {
   return getPurchaseRequestById(id);
 }
 
-//approval: SUBMITTED -> APPROVED / REJECTED
+// approve / reject: SUBMITTED -> APPROVED / REJECTED
 async function loadSubmittedPr(id: string): Promise<PrRow> {
   const pr = await loadRow(id);
   if (pr.status !== "SUBMITTED") {
