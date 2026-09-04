@@ -113,4 +113,47 @@ describe("Goods Receipt business rules", () => {
     const sum = res.body.data.reduce((acc, m) => acc + m.quantity, 0);
     expect(sum).toBe(100);
   });
+
+  // --- Point 7: a fully received Purchase Order becomes RECEIVED ---
+
+  function getPo(poId: string) {
+    return api<{ status: string; items: { receivedQuantity: number }[] }>(
+      "GET",
+      `/api/purchase-orders/${poId}`,
+      { token: f.userToken },
+    );
+  }
+
+  it("stays PARTIALLY_RECEIVED until every line is fully received, then flips to RECEIVED", async () => {
+    const { poId, poItemId } = await orderedPo(100);
+
+    const partial = await receive<{ purchaseOrder: { status: string } }>(poId, poItemId, 60);
+    expect(partial.status).toBe(201);
+    expect(partial.body.purchaseOrder.status).toBe("PARTIALLY_RECEIVED");
+
+    const remainder = await receive<{ purchaseOrder: { status: string } }>(poId, poItemId, 40);
+    expect(remainder.status).toBe(201);
+    expect(remainder.body.purchaseOrder.status).toBe("RECEIVED");
+
+    const po = await getPo(poId);
+    expect(po.body.status).toBe("RECEIVED");
+    expect(po.body.items[0]?.receivedQuantity).toBe(100);
+  });
+
+  it("marks the Purchase Order RECEIVED when one receipt covers the full quantity", async () => {
+    const { poId, poItemId } = await orderedPo(100);
+
+    const res = await receive<{ purchaseOrder: { status: string } }>(poId, poItemId, 100);
+    expect(res.status).toBe(201);
+    expect(res.body.purchaseOrder.status).toBe("RECEIVED");
+  });
+
+  it("rejects a further Goods Receipt once the Purchase Order is RECEIVED", async () => {
+    const { poId, poItemId } = await orderedPo(100);
+    expect((await receive(poId, poItemId, 100)).status).toBe(201);
+
+    const res = await receive<ErrorBody>(poId, poItemId, 10);
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("PURCHASE_ORDER_NOT_RECEIVABLE");
+  });
 });
